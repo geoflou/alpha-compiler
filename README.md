@@ -1,1 +1,2 @@
-# alpha-compiler
+# Compilers course project
+# Computer Science Department - University of Crete
