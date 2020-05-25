@@ -3,7 +3,17 @@
     #include <stdlib.h>
     #include <string.h>
     #include <stdio.h>
-    
+    #include "grammar.h"
+    #include "SymbolTable.h"
+
+    /*for double/real values we use strtod (str to double)*/
+    char* useless_ptr;
+    /*paizei na uparxei problima me autin tin sunartisi giati
+    pairnei char*, char** kai den 3erw an to yytext einai char*
+    (to char** pou pairnei einai gia na balei mesa oti den einai double
+    gia na min paei skoupidia i guess)*/
+
+    /*start of useless code*/
     struct AlphaToken{
     
         int line;
@@ -63,14 +73,9 @@
 
         return;
     }
-
-
-
-      void commentCheck(int line,char *text){
-       
-    }
+    /*end of useless code*/   
+    
 %}
-
 
 %option yylineno
 %option noyywrap
@@ -90,7 +95,7 @@ CONTINUE        "continue"
 AND             "and"
 NOT             "not"
 OR              "or"
-LOCAL           "local"
+LOCAL_KEYWORD           "local"
 TRUE            "true"
 FALSE           "false"
 NIL             "nil"
@@ -101,7 +106,10 @@ OPERATOR_DIV    "/"
 OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
-OPERATOR_NOT    "!="
+OPERATOR_NEQ    "!="
+OPERATOR_NOT    "!"
+OPERATOR_AND    "&&"
+OPERATOR_OR     "||"
 OPERATOR_PP     "++"
 OPERATOR_MM     "--"
 OPERATOR_GRT    ">"
@@ -123,13 +131,14 @@ DOUBLE_COLON        "::"
 DOT                 "."
 DOUBLE_DOT          ".."
 
-SINGLE_COMMENT      "//".*
-MULTI_LINE_COMMENT  "/*"
+SLASH_COMMENT      "//".*
+MULTI_COMMENT       "/*"
 UNKNOWN_TOKEN       .
 %%
 
-{SINGLE_COMMENT}      {alphaListInsert(yylineno, yytext, "SINGLE_LINE_COMMENT");}
-{MULTI_LINE_COMMENT}    {
+
+{SLASH_COMMENT}      {}
+{MULTI_COMMENT}    {
                             int commentCloseFlag = 1;
                             int index = 2;
                             int line = yylineno;
@@ -185,58 +194,61 @@ UNKNOWN_TOKEN       .
                             }
 
                             if(commentCloseFlag != 0){
-                                alphaListInsert(line, "ERROR", "Comment never closed");
-                                return;
+                                printf("In line %d ERROR: Comment never closed\n",line);
+                                return -1;
                             }
-                            alphaListInsert(line, fixedToken, "MULTI_LINE_COMMENT");
+                            
                             
 }
 
-
-{LEFT_BRACE}          {alphaListInsert(yylineno,yytext,"LEFT_BRACE");}
-{RIGHT_BRACE}         {alphaListInsert(yylineno,yytext,"RIGHT_BRACE");}
-{SEMICOLON}           {alphaListInsert(yylineno,yytext,"SEMICOLON");}
-{COMMA}               {alphaListInsert(yylineno,yytext,"COMMA");}
-{COLON}               {alphaListInsert(yylineno,yytext,"COLON");}
-{DOUBLE_COLON}        {alphaListInsert(yylineno,yytext,"DOUBLE_COLON");}
-{DOT}                 {alphaListInsert(yylineno,yytext,"DOT");}
-{DOUBLE_DOT}          {alphaListInsert(yylineno,yytext,"DOUBLE_COLON");}
-{IF}                  {alphaListInsert(yylineno, yytext, "IF_KEYWORD");}
-{ELSE}                {alphaListInsert(yylineno, yytext, "ELSE_KEYWORD");}
-{WHILE}               {alphaListInsert(yylineno, yytext, "WHILE_KEYWORD");}
-{FOR}                 {alphaListInsert(yylineno, yytext, "FOR_KEYWORD");}
-{FUNCTION}            {alphaListInsert(yylineno, yytext, "FUNCTION_KEYWORD");}
-{RETURN}              {alphaListInsert(yylineno, yytext, "RETURN_KEYWORD");}
-{BREAK}               {alphaListInsert(yylineno, yytext, "BREAK_KEYWORD");}
-{CONTINUE}            {alphaListInsert(yylineno, yytext, "CONTINUE_KEYWORD");}
-{AND}                 {alphaListInsert(yylineno, yytext, "AND_KEYWORD");}
-{OR}                  {alphaListInsert(yylineno, yytext, "OR_KEYWORD");}
-{LOCAL}               {alphaListInsert(yylineno, yytext, "LOCAL_KEYWORD");}
-{TRUE}                {alphaListInsert(yylineno, yytext, "TRUE_KEYWORD");}
-{FALSE}               {alphaListInsert(yylineno, yytext, "FALSE_KEYWORD");}
-{NIL}                 {alphaListInsert(yylineno, yytext, "NIL_KEYWORD");}
+{LEFT_BRACE}          {return LEFT_BRACE;}
+{RIGHT_BRACE}         {return RIGHT_BRACE;}
+{SEMICOLON}           {return SEMICOLON;}
+{COMMA}               {return COMMA;}
+{COLON}               {return COLON;}
+{DOUBLE_COLON}        {return DOUBLE_COLON;}
+{DOT}                 {return DOT;}
+{DOUBLE_DOT}          {return DOUBLE_DOT;}
+{IF}                  {return IF;}
+{ELSE}                {return ELSE;}
+{WHILE}               {return WHILE;}
+{FOR}                 {return FOR;}
+{FUNCTION}            {yylval.strVal = strdup(yytext);
+                       return FUNCTION;
+                      }
+{RETURN}              {return RETURN;}
+{BREAK}               {return BREAK;}
+{CONTINUE}            {return CONTINUE;}
+{AND}                 {return AND;}
+{OR}                  {return OR;}
+{LOCAL_KEYWORD}       {return LOCAL_KEYWORD;}
+{TRUE}                {return TRUE;}
+{FALSE}               {return FALSE;}
+{NIL}                 {return NIL;}
 {WHITE_SPACE}         {}
 {NEWLINE}             {}
-{OPERATOR_PLUS}       {alphaListInsert(yylineno,yytext,"PLUS");}
-{OPERATOR_MINUS}      {alphaListInsert(yylineno,yytext,"MINUS");}
-{OPERATOR_MUL}        {alphaListInsert(yylineno,yytext,"MULTIPLICATION");}
-{OPERATOR_DIV}        {alphaListInsert(yylineno,yytext,"DIVISION");}
-{OPERATOR_ASSIGN}     {alphaListInsert(yylineno,yytext,"ASSIGNMENT");}
-{OPERATOR_MOD}        {alphaListInsert(yylineno,yytext,"MODULO");}
-{OPERATOR_EQ}         {alphaListInsert(yylineno,yytext,"EQUAL");}
-{OPERATOR_NOT}        {alphaListInsert(yylineno,yytext,"NOT");}
-{OPERATOR_PP}         {alphaListInsert(yylineno,yytext,"INCREMENT");}
-{OPERATOR_MM}         {alphaListInsert(yylineno,yytext,"DECREMENT");}
-{OPERATOR_GRT}        {alphaListInsert(yylineno,yytext,"GREATER");}
-{OPERATOR_LES}        {alphaListInsert(yylineno,yytext,"LESSER");}
-{OPERATOR_GRE}        {alphaListInsert(yylineno,yytext,"GREATER EQUAL");}
-{OPERATOR_LEE}        {alphaListInsert(yylineno,yytext,"LESSER EQUAL");}
-{INTEGER}             {alphaListInsert(yylineno,yytext,"INT");}
-{REAL}                {alphaListInsert(yylineno,yytext,"REAL");}
-{LEFT_BRACKET}        {alphaListInsert(yylineno,yytext,"LEFT_BRACKET");}
-{RIGHT_BRACKET}       {alphaListInsert(yylineno,yytext,"RIGHT_BRACKET");}
-{LEFT_PARENTHESIS}    {alphaListInsert(yylineno,yytext,"LEFT_PARENTHESIS");}
-{RIGHT_PARENTHESIS}   {alphaListInsert(yylineno,yytext,"RIGHT_PARENTHESIS");}
+{OPERATOR_PLUS}       {return OPERATOR_PLUS;}
+{OPERATOR_MINUS}      {return OPERATOR_MINUS;}
+{OPERATOR_MUL}        {return OPERATOR_MUL;}
+{OPERATOR_DIV}        {return OPERATOR_DIV;}
+{OPERATOR_ASSIGN}     {return OPERATOR_ASSIGN;}
+{OPERATOR_MOD}        {return OPERATOR_MOD;}
+{OPERATOR_EQ}         {return OPERATOR_EQ;}
+{OPERATOR_NOT}        {return OPERATOR_NOT;}
+{OPERATOR_PP}         {return OPERATOR_PP;}
+{OPERATOR_MM}         {return OPERATOR_MM;}
+{OPERATOR_GRT}        {return OPERATOR_GRT;}
+{OPERATOR_LES}        {return OPERATOR_LES;}
+{OPERATOR_GRE}        {return OPERATOR_GRE;}
+{OPERATOR_LEE}        {return OPERATOR_LEE;}
+{INTEGER}             {yylval.intVal = atoi(yytext);
+                       return INTEGER;}
+{REAL}                {yylval.doubleVal = strtod(yytext, &useless_ptr);
+                       return REAL;}
+{LEFT_BRACKET}        {return LEFT_BRACKET;}
+{RIGHT_BRACKET}       {return RIGHT_BRACKET;}
+{LEFT_PARENTHESIS}    {return LEFT_PARENTHESIS;}
+{RIGHT_PARENTHESIS}   {return RIGHT_PARENTHESIS;}
 
 {STRING}              {
             char charIndex = '\"';
@@ -303,40 +315,25 @@ UNKNOWN_TOKEN       .
                 charIndex = input();
             }
 
+
             if(backSlashCounter % 2 != 0){
-                alphaListInsert(line, "ERROR", "Invalid backslash escape sequence");
-                return;
+                printf("In line %d ERROR: Invalid backslash escape sequence\n",line);
+                return -1;
             }
 
             if(closingQuoteFlag == 0){
-                alphaListInsert(line, fixedString, "STRING");
+                yylval.strVal = strdup(fixedString);
+                return STRING;
             }
             else{
-                alphaListInsert(line, "ERROR", "Closing '\"' expected!");
+                printf("In line %d ERROR: Closing '\"' expected\n", line);
+                return -1;
             }
 
 }
 
-{ID}    {alphaListInsert(yylineno, yytext, "ID");}
-
-{UNKNOWN_TOKEN} {alphaListInsert(yylineno, yytext, "UNKNOWN_TOKEN");}
+{ID}    {yylval.strVal = strdup(yytext);
+         return ID;}
 
 %%
 
-int main(int argc, char* argv[]){
-    
-    if(argc < 2){
-        printf("No input file!\n");
-        return -1;
-    }
-
-    if(!(yyin = fopen(argv[1], "r"))){
-        printf("Cannot read file!\n");
-        return -1;
-    }
-
-    yylex();
-    printAlphaList();
-
-    return 0;    
-}
