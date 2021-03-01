@@ -8,7 +8,8 @@
     
         int line;
         char* type;
-        char* value;    
+        char* value;
+        char* special;    
 
         struct AlphaToken* next;
 
@@ -17,7 +18,7 @@
     struct AlphaToken * tokenListHead = NULL;
 
     
-    void alphaListInsert(int line, char* value, char* type){
+    void alphaListInsert(int line, char* value, char* type, char* special){
         struct AlphaToken* newToken, *tmp;
 
         assert(value != NULL);
@@ -28,6 +29,7 @@
         newToken -> line = line;
         newToken -> value = strdup(value);
         newToken -> type = type;
+        newToken -> special = special;
         newToken -> next = NULL;
 
         tmp = tokenListHead;
@@ -56,7 +58,7 @@
         }
 
         while(tmp != NULL){
-            printf("%d:  #%d   \"%s\"  %s\n", tmp->line, tokenCount, tmp -> value, tmp-> type);
+            printf("%d:  #%d   \"%s\"  %s   %s\n", tmp->line, tokenCount, tmp -> value, tmp-> type, tmp->special);
             tokenCount++;
             tmp = tmp -> next;
         }
@@ -128,7 +130,7 @@ SINGLE_COMMENT      "//".*
 UNKNOWN_TOKEN       .
 %%
 
-{SINGLE_COMMENT}      {alphaListInsert(yylineno, yytext, "SINGLE_LINE_COMMENT");}
+{SINGLE_COMMENT}      {alphaListInsert(yylineno, yytext, "SINGLE_LINE_COMMENT", "<-enumerated");}
 {MULTI_LINE_COMMENT}    {
                             int commentCloseFlag = 1;
                             int index = 2;
@@ -185,58 +187,58 @@ UNKNOWN_TOKEN       .
                             }
 
                             if(commentCloseFlag != 0){
-                                alphaListInsert(line, "ERROR", "Comment never closed");
+                                alphaListInsert(line, "ERROR", "Comment never closed", "");
                                 return;
                             }
-                            alphaListInsert(line, fixedToken, "MULTI_LINE_COMMENT");
+                            alphaListInsert(line, fixedToken, "MULTI_LINE_COMMENT" , "<-enumerated");
                             
 }
 
 
-{LEFT_BRACE}          {alphaListInsert(yylineno,yytext,"LEFT_BRACE");}
-{RIGHT_BRACE}         {alphaListInsert(yylineno,yytext,"RIGHT_BRACE");}
-{SEMICOLON}           {alphaListInsert(yylineno,yytext,"SEMICOLON");}
-{COMMA}               {alphaListInsert(yylineno,yytext,"COMMA");}
-{COLON}               {alphaListInsert(yylineno,yytext,"COLON");}
-{DOUBLE_COLON}        {alphaListInsert(yylineno,yytext,"DOUBLE_COLON");}
-{DOT}                 {alphaListInsert(yylineno,yytext,"DOT");}
-{DOUBLE_DOT}          {alphaListInsert(yylineno,yytext,"DOUBLE_COLON");}
-{IF}                  {alphaListInsert(yylineno, yytext, "IF_KEYWORD");}
-{ELSE}                {alphaListInsert(yylineno, yytext, "ELSE_KEYWORD");}
-{WHILE}               {alphaListInsert(yylineno, yytext, "WHILE_KEYWORD");}
-{FOR}                 {alphaListInsert(yylineno, yytext, "FOR_KEYWORD");}
-{FUNCTION}            {alphaListInsert(yylineno, yytext, "FUNCTION_KEYWORD");}
-{RETURN}              {alphaListInsert(yylineno, yytext, "RETURN_KEYWORD");}
-{BREAK}               {alphaListInsert(yylineno, yytext, "BREAK_KEYWORD");}
-{CONTINUE}            {alphaListInsert(yylineno, yytext, "CONTINUE_KEYWORD");}
-{AND}                 {alphaListInsert(yylineno, yytext, "AND_KEYWORD");}
-{OR}                  {alphaListInsert(yylineno, yytext, "OR_KEYWORD");}
-{LOCAL}               {alphaListInsert(yylineno, yytext, "LOCAL_KEYWORD");}
-{TRUE}                {alphaListInsert(yylineno, yytext, "TRUE_KEYWORD");}
-{FALSE}               {alphaListInsert(yylineno, yytext, "FALSE_KEYWORD");}
-{NIL}                 {alphaListInsert(yylineno, yytext, "NIL_KEYWORD");}
+{LEFT_BRACE}          {alphaListInsert(yylineno,yytext,"LEFT_BRACE", "<-enumerated");}
+{RIGHT_BRACE}         {alphaListInsert(yylineno,yytext,"RIGHT_BRACE", "<-enumerated");}
+{SEMICOLON}           {alphaListInsert(yylineno,yytext,"SEMICOLON", "<-enumerated");}
+{COMMA}               {alphaListInsert(yylineno,yytext,"COMMA", "<-enumerated");}
+{COLON}               {alphaListInsert(yylineno,yytext,"COLON", "<-enumerated");}
+{DOUBLE_COLON}        {alphaListInsert(yylineno,yytext,"DOUBLE_COLON", "<-enumerated");}
+{DOT}                 {alphaListInsert(yylineno,yytext,"DOT", "<-enumerated");}
+{DOUBLE_DOT}          {alphaListInsert(yylineno,yytext,"DOUBLE_COLON", "<-enumerated");}
+{IF}                  {alphaListInsert(yylineno, yytext, "IF_KEYWORD", "<-enumerated");}
+{ELSE}                {alphaListInsert(yylineno, yytext, "ELSE_KEYWORD", "<-enumerated");}
+{WHILE}               {alphaListInsert(yylineno, yytext, "WHILE_KEYWORD", "<-enumerated");}
+{FOR}                 {alphaListInsert(yylineno, yytext, "FOR_KEYWORD", "<-enumerated");}
+{FUNCTION}            {alphaListInsert(yylineno, yytext, "FUNCTION_KEYWORD", "<-enumerated");}
+{RETURN}              {alphaListInsert(yylineno, yytext, "RETURN_KEYWORD", "<-enumerated");}
+{BREAK}               {alphaListInsert(yylineno, yytext, "BREAK_KEYWORD", "<-enumerated");}
+{CONTINUE}            {alphaListInsert(yylineno, yytext, "CONTINUE_KEYWORD", "<-enumerated");}
+{AND}                 {alphaListInsert(yylineno, yytext, "AND_KEYWORD", "<-enumerated");}
+{OR}                  {alphaListInsert(yylineno, yytext, "OR_KEYWORD", "<-enumerated");}
+{LOCAL}               {alphaListInsert(yylineno, yytext, "LOCAL_KEYWORD", "<-enumerated");}
+{TRUE}                {alphaListInsert(yylineno, yytext, "TRUE_KEYWORD", "<-enumerated");}
+{FALSE}               {alphaListInsert(yylineno, yytext, "FALSE_KEYWORD", "<-enumerated");}
+{NIL}                 {alphaListInsert(yylineno, yytext, "NIL_KEYWORD", "<-enumerated");}
 {WHITE_SPACE}         {}
 {NEWLINE}             {}
-{OPERATOR_PLUS}       {alphaListInsert(yylineno,yytext,"PLUS");}
-{OPERATOR_MINUS}      {alphaListInsert(yylineno,yytext,"MINUS");}
-{OPERATOR_MUL}        {alphaListInsert(yylineno,yytext,"MULTIPLICATION");}
-{OPERATOR_DIV}        {alphaListInsert(yylineno,yytext,"DIVISION");}
-{OPERATOR_ASSIGN}     {alphaListInsert(yylineno,yytext,"ASSIGNMENT");}
-{OPERATOR_MOD}        {alphaListInsert(yylineno,yytext,"MODULO");}
-{OPERATOR_EQ}         {alphaListInsert(yylineno,yytext,"EQUAL");}
-{OPERATOR_NOT}        {alphaListInsert(yylineno,yytext,"NOT");}
-{OPERATOR_PP}         {alphaListInsert(yylineno,yytext,"INCREMENT");}
-{OPERATOR_MM}         {alphaListInsert(yylineno,yytext,"DECREMENT");}
-{OPERATOR_GRT}        {alphaListInsert(yylineno,yytext,"GREATER");}
-{OPERATOR_LES}        {alphaListInsert(yylineno,yytext,"LESSER");}
-{OPERATOR_GRE}        {alphaListInsert(yylineno,yytext,"GREATER EQUAL");}
-{OPERATOR_LEE}        {alphaListInsert(yylineno,yytext,"LESSER EQUAL");}
-{INTEGER}             {alphaListInsert(yylineno,yytext,"INT");}
-{REAL}                {alphaListInsert(yylineno,yytext,"REAL");}
-{LEFT_BRACKET}        {alphaListInsert(yylineno,yytext,"LEFT_BRACKET");}
-{RIGHT_BRACKET}       {alphaListInsert(yylineno,yytext,"RIGHT_BRACKET");}
-{LEFT_PARENTHESIS}    {alphaListInsert(yylineno,yytext,"LEFT_PARENTHESIS");}
-{RIGHT_PARENTHESIS}   {alphaListInsert(yylineno,yytext,"RIGHT_PARENTHESIS");}
+{OPERATOR_PLUS}       {alphaListInsert(yylineno,yytext,"PLUS", "<-enumerated");}
+{OPERATOR_MINUS}      {alphaListInsert(yylineno,yytext,"MINUS", "<-enumerated");}
+{OPERATOR_MUL}        {alphaListInsert(yylineno,yytext,"MULTIPLICATION", "<-enumerated");}
+{OPERATOR_DIV}        {alphaListInsert(yylineno,yytext,"DIVISION", "<-enumerated");}
+{OPERATOR_ASSIGN}     {alphaListInsert(yylineno,yytext,"ASSIGNMENT", "<-enumerated");}
+{OPERATOR_MOD}        {alphaListInsert(yylineno,yytext,"MODULO", "<-enumerated");}
+{OPERATOR_EQ}         {alphaListInsert(yylineno,yytext,"EQUAL", "<-enumerated");}
+{OPERATOR_NOT}        {alphaListInsert(yylineno,yytext,"NOT", "<-enumerated");}
+{OPERATOR_PP}         {alphaListInsert(yylineno,yytext,"INCREMENT", "<-enumerated");}
+{OPERATOR_MM}         {alphaListInsert(yylineno,yytext,"DECREMENT", "<-enumerated");}
+{OPERATOR_GRT}        {alphaListInsert(yylineno,yytext,"GREATER", "<-enumerated");}
+{OPERATOR_LES}        {alphaListInsert(yylineno,yytext,"LESSER", "<-enumerated");}
+{OPERATOR_GRE}        {alphaListInsert(yylineno,yytext,"GREATER EQUAL", "<-enumerated");}
+{OPERATOR_LEE}        {alphaListInsert(yylineno,yytext,"LESSER EQUAL", "<-enumerated");}
+{INTEGER}             {alphaListInsert(yylineno,yytext,"INT", "<-integer");}
+{REAL}                {alphaListInsert(yylineno,yytext,"REAL", "<-real");}
+{LEFT_BRACKET}        {alphaListInsert(yylineno,yytext,"LEFT_BRACKET", "<-enumerated");}
+{RIGHT_BRACKET}       {alphaListInsert(yylineno,yytext,"RIGHT_BRACKET", "<-enumerated");}
+{LEFT_PARENTHESIS}    {alphaListInsert(yylineno,yytext,"LEFT_PARENTHESIS", "<-enumerated");}
+{RIGHT_PARENTHESIS}   {alphaListInsert(yylineno,yytext,"RIGHT_PARENTHESIS", "<-enumerated");}
 
 {STRING}              {
             char charIndex = '\"';
@@ -308,22 +310,22 @@ UNKNOWN_TOKEN       .
             }
 
             if(backSlashCounter % 2 != 0){
-                alphaListInsert(line, "ERROR", "Invalid backslash escape sequence");
+                alphaListInsert(line, "ERROR", "Invalid backslash escape sequence", "");
                 return;
             }
 
             if(closingQuoteFlag == 0){
-                alphaListInsert(line, fixedString, "STRING");
+                alphaListInsert(line, fixedString, "STRING" , "<-char*");
             }
             else{
-                alphaListInsert(line, "ERROR", "Closing '\"' expected!");
+                alphaListInsert(line, "ERROR", "Closing '\"' expected!", "");
             }
 
 }
 
-{ID}    {alphaListInsert(yylineno, yytext, "ID");}
+{ID}    {alphaListInsert(yylineno, yytext, "ID", "<-char*");}
 
-{UNKNOWN_TOKEN} {alphaListInsert(yylineno, yytext, "UNKNOWN_TOKEN");}
+{UNKNOWN_TOKEN} {alphaListInsert(yylineno, yytext, "UNKNOWN_TOKEN", "");}
 
 %%
 
