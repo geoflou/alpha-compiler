@@ -131,8 +131,8 @@ DOUBLE_COLON        "::"
 DOT                 "."
 DOUBLE_DOT          ".."
 
-SLASH_COMMENT      "//".*
 MULTI_COMMENT       "/*"
+SLASH_COMMENT      "//".*
 UNKNOWN_TOKEN       .
 %%
 
@@ -294,10 +294,13 @@ UNKNOWN_TOKEN       .
                         *(fixedString + index) = '\\';
                         index += 1;
                         charIndex = input();
+                        backSlashCounter++;
                         continue;
                     }
-                    
-                    backSlashCounter++;
+                    else {
+                        printf("In line %d ERROR: Invalid escape sequence\n",line);
+                        return -1;
+                    }    
                 }
 
 
