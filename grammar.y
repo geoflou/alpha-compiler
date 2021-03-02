@@ -130,36 +130,59 @@ primary: lvalue {printf("lvalue -> primary\n");}
 
 lvalue: ID  {
     printf("ID -> lvalue\n");
-    SymbolTableEntry *dummy = lookupScope(yylval.strVal,scope);
-    Variable *newvar=(Variable*)malloc(sizeof(struct Variable));
-    SymbolTableEntry *newnode=(SymbolTableEntry*)malloc(sizeof(struct SymbolTableEntry));
-    newvar->name = yylval.strVal;
-    newvar->scope = scope;
-    newvar->line = yylineno;
-    
-    if(scope==0){
-        newnode->type = GLOBAL;
-    }else{
-        newnode->type = LOCAL;
-    }
-        newnode->varVal = newvar;
-        newnode->isActive = 1;
-        
-        if(dummy!=NULL){
-            comparelibfunc(yylval.strVal);
-            char *ptr= getEntryType(dummy);
-                                
-            if(ptr=="USERFUNC"){
-                if(dummy->isActive==1){
-                    yyerror("A function has taken already that name!");
-                }else{
-                    insertEntry(newnode);
-                }
-            }
+    SymbolTableEntry *temp;
+    SymbolTableEntry *new_entry;
+    Variable *new_var;
+
+    temp = lookupEverything(yylval.strVal);
+
+    if(temp == NULL) {
+        new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+        new_var = (Variable*)malloc(sizeof(Variable));
+
+
+        new_var -> name = yylval.strVal;
+        new_var -> scope = scope;
+        new_var -> line = yylineno;
+
+        new_entry -> isActive = 1;
+        new_entry -> varVal = new_var;
+        new_entry -> funcVal = NULL;
+        if(scope==0){
+            new_entry->type = GLOBAL;
         }else{
-            comparelibfunc(yylval.strVal);     
-            insertEntry(newnode);
+            new_entry->type = LOCAL;
+        } 
+
+        insertEntry(new_entry);
+    } else {
+        if(getEntryType(temp) == "USERFUNC" && temp -> isActive == 1) {
+            yyerror("A function has taken already that name!");
+            return;
         }
+        
+        if(temp -> isActive == 0) {
+            new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+            new_var = (Variable*)malloc(sizeof(Variable));
+
+            new_var -> name = yylval.strVal;
+            new_var -> scope = scope;
+            new_var -> line = yylineno;
+
+            new_entry -> isActive = 1;
+            new_entry -> varVal = new_var;
+            new_entry -> funcVal = NULL;
+            if(scope==0){
+                new_entry->type = GLOBAL;
+            }else{
+                new_entry->type = LOCAL;
+            } 
+
+            insertEntry(new_entry);
+        }
+    }
+    
+    
 }
 
     |LOCAL_KEYWORD ID   {
