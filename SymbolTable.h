@@ -43,6 +43,8 @@ void initTable(void);
 
 void insertLibraryFunctions();
 
+void insertFunction(char* name);
+
 int hashForBucket(char *symbolName);
 
 int hashForScope(int symbolScope);
