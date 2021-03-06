@@ -138,7 +138,10 @@ lvalue: ID  {
         insertID(yylval.strVal, scope, yylineno); 
     }
     |DOUBLE_COLON ID    {  
-        printf("::ID -> lvalue\n");     
+        printf("::ID -> lvalue\n");
+        if(lookupScope(yylval.strVal, 0) == NULL) {
+            yyerror("Global variable %s cannot be found!\n", yylval.strVal);
+        }     
     }
     |member {printf("member -> lvalue\n");}
     ;
