@@ -26,6 +26,10 @@ void insertID(char* name, int scope, int line) {
         return;
     }
 
+    if(comparelibfunc(name) == -1) {
+        return;
+    }
+
     if(getEntryType(temp) == "USERFUNC" && temp -> isActive == 1) {
         yyerror("A function has taken already that name!");
         return;
