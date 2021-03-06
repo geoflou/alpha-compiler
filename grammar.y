@@ -1,7 +1,7 @@
 %{
     #include <stdlib.h>
     #include <stdio.h>
-    #include "SymbolTable.h"
+    #include "utilities.h"
     #include "grammar.h"
 
     int yyerror(char* message);
@@ -130,8 +130,7 @@ primary: lvalue {printf("lvalue -> primary\n");}
 
 lvalue: ID  {
     printf("ID -> lvalue\n");
-    
-    
+    insertID(yylval.strVal, scope, yylineno);
 }
 
     |LOCAL_KEYWORD ID   {
