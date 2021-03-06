@@ -362,7 +362,7 @@ void insertFunction(char* name) {
     insertEntry(entry);
 }
 
-void comparelibfunc(char *name){
+int comparelibfunc(char *name){
         
     char *print = malloc(sizeof(char*)*10);
     char *input = malloc(sizeof(char*)*10);
@@ -393,74 +393,74 @@ void comparelibfunc(char *name){
         i=strcmp(name,print);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,input);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
         
         i=strcmp(name,objectmemberkeys);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,objecttotalmembers);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,objectcopy);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,totalarguments);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,argument);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,typeof1);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,strtonum);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,sqrt);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,cos);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,sin);
         if(i==0){
             printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
-    return;
+    return 0;
 }
