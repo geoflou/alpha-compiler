@@ -134,9 +134,11 @@ lvalue: ID  {
 }
 
     |LOCAL_KEYWORD ID   {
-        printf("local ID -> lvalue\n");     
+        printf("local ID -> lvalue\n");
+        insertID(yylval.strVal, scope, yylineno); 
     }
-    |DOUBLE_COLON ID    {       
+    |DOUBLE_COLON ID    {  
+        printf("::ID -> lvalue\n");     
     }
     |member {printf("member -> lvalue\n");}
     ;
