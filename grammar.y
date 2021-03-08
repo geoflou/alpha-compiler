@@ -59,14 +59,14 @@
 %left LEFT_PARENTHESIS RIGHT_PARENTHESIS
 
 %right OPERATOR_ASSIGN
-%left OPERATOR_OR
-%left OPERATOR_AND
+%left OR
+%left AND
 
 %nonassoc OPERATOR_EQ OPERATOR_NEQ
 %right OPERATOR_GRT OPERATOR_LES OPERATOR_GRE OPERATOR_LEE
 %left OPERATOR_PLUS OPERATOR_MINUS
 %left OPERATOR_MUL OPERATOR_DIV OPERATOR_MOD
-%right OPERATOR_NOT OPERATOR_PP OPERATOR_MM
+%right NOT OPERATOR_PP OPERATOR_MM
 
 %left DOT DOUBLE_DOT    
 
@@ -91,7 +91,7 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
 
-expr: assignexpr    {printf("assignexpr -> expr");}
+expr: assignexpr    {printf("assignexpr -> expr\n");}
     | expr OPERATOR_PLUS expr   {printf("expr + expr -> expr\n");}
     | expr OPERATOR_MINUS expr  {printf("expr - expr -> expr\n");}
     | expr OPERATOR_MOD expr    {printf("expr % expr -> expr\n");}
@@ -103,14 +103,14 @@ expr: assignexpr    {printf("assignexpr -> expr");}
     | expr OPERATOR_LEE expr    {printf("expr <= expr -> expr\n");}
     | expr OPERATOR_EQ expr {printf("expr == expr -> expr\n");}
     | expr OPERATOR_NEQ expr    {printf("expr != expr -> expr\n");}
-    | expr OPERATOR_AND expr    {printf("expr && expr -> expr\n");}
-    | expr OPERATOR_OR expr {printf("expr || expr -> expr\n");}
+    | expr AND expr    {printf("expr && expr -> expr\n");}
+    | expr OR expr {printf("expr || expr -> expr\n");}
     |term   {printf("term -> expr\n");}  
     ;
 
 term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
     |OPERATOR_MINUS expr    {printf("- expr -> term\n");}
-    |OPERATOR_NOT expr  {printf("not expr -> term\n");}
+    |NOT expr  {printf("not expr -> term\n");}
     |OPERATOR_PP lvalue {printf("++lvalue -> term\n");}
     |lvalue OPERATOR_PP {printf("lvalue++ -> term\n");}
     |OPERATOR_MM lvalue {printf("--lvalue -> term\n");}
@@ -174,7 +174,7 @@ elist: expr
     ;
 
 objectdef: LEFT_BRACE elist RIGHT_BRACE {printf("[elist] -> objectdef\n");}
-    |LEFT_BRACE indexed RIGHT_BRACE {printf("[indexed] -> objectdef\n]");}
+    |LEFT_BRACE indexed RIGHT_BRACE {printf("[indexed] -> objectdef\n]");} 
     ;
 
 indexed: indexedelem
