@@ -62,7 +62,7 @@
 
         if(tmp == NULL){
             printf("No tokens recognized\n");
-           return;
+            return;
         }
 
         while(tmp != NULL){
@@ -107,9 +107,9 @@ OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
 OPERATOR_NEQ    "!="
-OPERATOR_NOT    "!"
-OPERATOR_AND    "&&"
-OPERATOR_OR     "||"
+OPERATOR_NOT    "not"
+OPERATOR_AND    "and"
+OPERATOR_OR     "or"
 OPERATOR_PP     "++"
 OPERATOR_MM     "--"
 OPERATOR_GRT    ">"
