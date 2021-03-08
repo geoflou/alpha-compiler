@@ -212,6 +212,7 @@ UNKNOWN_TOKEN       .
 {BREAK}               {alphaListInsert(yylineno, yytext, "BREAK_KEYWORD", "<-enumerated");}
 {CONTINUE}            {alphaListInsert(yylineno, yytext, "CONTINUE_KEYWORD", "<-enumerated");}
 {AND}                 {alphaListInsert(yylineno, yytext, "AND_KEYWORD", "<-enumerated");}
+{NOT}                 {alphaListInsert(yylineno, yytext, "NOT_KEYWORD", "<-enumerated");}
 {OR}                  {alphaListInsert(yylineno, yytext, "OR_KEYWORD", "<-enumerated");}
 {LOCAL}               {alphaListInsert(yylineno, yytext, "LOCAL_KEYWORD", "<-enumerated");}
 {TRUE}                {alphaListInsert(yylineno, yytext, "TRUE_KEYWORD", "<-enumerated");}
@@ -226,7 +227,7 @@ UNKNOWN_TOKEN       .
 {OPERATOR_ASSIGN}     {alphaListInsert(yylineno,yytext,"ASSIGNMENT", "<-enumerated");}
 {OPERATOR_MOD}        {alphaListInsert(yylineno,yytext,"MODULO", "<-enumerated");}
 {OPERATOR_EQ}         {alphaListInsert(yylineno,yytext,"EQUAL", "<-enumerated");}
-{OPERATOR_NOT}        {alphaListInsert(yylineno,yytext,"NOT", "<-enumerated");}
+{OPERATOR_NEQ}        {alphaListInsert(yylineno,yytext,"NEQ", "<-enumerated");}
 {OPERATOR_PP}         {alphaListInsert(yylineno,yytext,"INCREMENT", "<-enumerated");}
 {OPERATOR_MM}         {alphaListInsert(yylineno,yytext,"DECREMENT", "<-enumerated");}
 {OPERATOR_GRT}        {alphaListInsert(yylineno,yytext,"GREATER", "<-enumerated");}
