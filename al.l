@@ -103,14 +103,14 @@ OPERATOR_DIV    "/"
 OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
-OPERATOR_NOT    "!="
+OPERATOR_NEQ    "!="
 OPERATOR_PP     "++"
 OPERATOR_MM     "--"
 OPERATOR_GRT    ">"
 OPERATOR_LES    "<"
 OPERATOR_GRE    ">="
 OPERATOR_LEE    "<="
-INTEGER         [][0-9]{1,}
+INTEGER         [0-9]{1,}
 REAL            [0-9]*\.?[0-9]{1,}
 LEFT_BRACKET        "{"
 RIGHT_BRACKET       "}"
