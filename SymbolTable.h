@@ -51,7 +51,7 @@ int hashForScope(int symbolScope);
 
 void insertEntry(SymbolTableEntry *symbol);
 
-SymbolTableEntry *lookupEverything(char *name);
+SymbolTableEntry *lookupEverything(char *name, int scope);
 
 SymbolTableEntry *lookupScope(char *name, int scope);
 

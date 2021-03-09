@@ -69,7 +69,6 @@ void insertEntry(SymbolTableEntry *symbol){
         SymbolTable[bucket] -> next = symbol;
     }    
     else{
-        symbolIndex = SymbolTable[scopeLink] -> next;
         symbol -> next = SymbolTable[bucket] -> next;
         SymbolTable[bucket] -> next = symbol;
     }
@@ -78,7 +77,6 @@ void insertEntry(SymbolTableEntry *symbol){
         SymbolTable[scopeLink] -> next = scopeLinkSymbol;
     }
     else{
-        symbolIndex = SymbolTable[scopeLink] -> next;
         scopeLinkSymbol -> next = SymbolTable[scopeLink] -> next;
         SymbolTable[scopeLink] -> next = scopeLinkSymbol;
     }
@@ -87,37 +85,25 @@ void insertEntry(SymbolTableEntry *symbol){
 }
 
 
-SymbolTableEntry *lookupEverything(char *name){
-    int bucket;
+SymbolTableEntry *lookupEverything(char *name, int scope){
     SymbolTableEntry *symbolIndex;
-    Variable *varTMP;
-    Function *funcTMP;
+    int i = 0;
 
     assert(name != NULL);
-    bucket = hashForBucket(name);
-    if(SymbolTable[bucket] == NULL){
-        return NULL;
-    }
 
-    symbolIndex = SymbolTable[bucket];
-
-    while(symbolIndex != NULL){
+    for(i = scope; i >= 0;i--) {
+        symbolIndex = lookupScope(name, i);
         
-        if(symbolIndex -> varVal != NULL){
-            varTMP = symbolIndex -> varVal;
-            if(strcmp(varTMP -> name, name) == 0){
-                return symbolIndex;
-            }
+        if(symbolIndex == NULL) {
+            continue;
         }
 
-        if(symbolIndex -> funcVal != NULL){
-            funcTMP = symbolIndex -> funcVal;
-            if(strcmp(funcTMP -> name, name) == 0){
-                return symbolIndex;
-            }
+        if(symbolIndex -> isActive == 1) {
+            return symbolIndex; 
         }
-        symbolIndex = symbolIndex -> next;
+
     }
+
 
     return NULL;
 }
@@ -200,7 +186,7 @@ void hideFromBuckets(int scope){
         symbolIndex = SymbolTable[i] -> next;
 
         while(symbolIndex != NULL){
- 
+
             if(symbolIndex -> varVal != NULL){
                 varTMP = symbolIndex -> varVal;
                 if(varTMP -> scope == scope){
