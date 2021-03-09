@@ -230,24 +230,33 @@ void printEntries(void){
     Function *funcTMP; 
 
     for(i = 0;i < 10;i++){
-        
+
         printf("---------------  Scope #%d  ---------------\n", i);
         symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
 
         if(symbolIndex == NULL){
             continue;
         }
+
         symbolIndex = symbolIndex -> next;
-        while(symbolIndex != NULL){
-            printf("\"%s\"  [%s]    (line %d)   (scope %d)\n",getEntryName(symbolIndex),
-                getEntryType(symbolIndex), getEntryLine(symbolIndex), getEntryScope(symbolIndex));
-            symbolIndex = symbolIndex -> next;
-        }
+        printScope(symbolIndex);
 
     }
     return;
 }
 
+void printScope(SymbolTableEntry* scopeHead) {
+    if(scopeHead == NULL) {
+        return;
+    }
+
+    printScope(scopeHead -> next);
+
+    printf("\"%s\"  [%s]    (line %d)   (scope %d)\n",getEntryName(scopeHead),
+                getEntryType(scopeHead), getEntryLine(scopeHead), getEntryScope(scopeHead));
+
+    return;
+}
 
 char *getEntryType(SymbolTableEntry *symbol){
     switch (symbol -> type)

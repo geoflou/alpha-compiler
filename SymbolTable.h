@@ -63,6 +63,8 @@ void hideFromBuckets(int scope);
 
 void printEntries(void);
 
+void printScope(SymbolTableEntry* scopeHead);
+
 char *getEntryType(SymbolTableEntry *symbol);
 
 char *getEntryName(SymbolTableEntry *symbol);
