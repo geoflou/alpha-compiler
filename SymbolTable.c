@@ -69,12 +69,9 @@ void insertEntry(SymbolTableEntry *symbol){
         SymbolTable[bucket] -> next = symbol;
     }    
     else{
-        symbolIndex = SymbolTable[bucket] -> next;
-        while(symbolIndex -> next != NULL){
-            symbolIndex = symbolIndex -> next;
-        }
-
-        symbolIndex -> next = symbol;
+        symbolIndex = SymbolTable[scopeLink] -> next;
+        symbol -> next = SymbolTable[bucket] -> next;
+        SymbolTable[bucket] -> next = symbol;
     }
 
     if(SymbolTable[scopeLink] -> next == NULL){
@@ -82,11 +79,8 @@ void insertEntry(SymbolTableEntry *symbol){
     }
     else{
         symbolIndex = SymbolTable[scopeLink] -> next;
-        while(symbolIndex -> next != NULL){
-            symbolIndex = symbolIndex -> next;
-        }
-
-        symbolIndex -> next = scopeLinkSymbol;
+        scopeLinkSymbol -> next = SymbolTable[scopeLink] -> next;
+        SymbolTable[scopeLink] -> next = scopeLinkSymbol;
     }
 
     return;
@@ -236,12 +230,12 @@ void printEntries(void){
     Function *funcTMP; 
 
     for(i = 0;i < 10;i++){
-       
+        
         printf("---------------  Scope #%d  ---------------\n", i);
         symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
-       
+
         if(symbolIndex == NULL){
-           continue;
+            continue;
         }
         symbolIndex = symbolIndex -> next;
         while(symbolIndex != NULL){
