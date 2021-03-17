@@ -84,7 +84,6 @@ void insertEntry(SymbolTableEntry *symbol){
     return;
 }
 
-
 SymbolTableEntry *lookupEverything(char *name, int scope){
     SymbolTableEntry *symbolIndex;
     int i = 0;
@@ -99,7 +98,7 @@ SymbolTableEntry *lookupEverything(char *name, int scope){
         }
 
         if(symbolIndex -> isActive == 1) {
-            return symbolIndex; 
+            return  symbolIndex; 
         }
 
     }
@@ -107,7 +106,6 @@ SymbolTableEntry *lookupEverything(char *name, int scope){
 
     return NULL;
 }
-
 
 SymbolTableEntry *lookupScope(char *name, int scope){
     int bucket;
@@ -186,7 +184,7 @@ void hideFromBuckets(int scope){
         symbolIndex = SymbolTable[i] -> next;
 
         while(symbolIndex != NULL){
-
+ 
             if(symbolIndex -> varVal != NULL){
                 varTMP = symbolIndex -> varVal;
                 if(varTMP -> scope == scope){
@@ -381,73 +379,73 @@ int comparelibfunc(char *name){
 
         i=strcmp(name,print);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,input);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
         
         i=strcmp(name,objectmemberkeys);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,objecttotalmembers);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,objectcopy);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,totalarguments);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,argument);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,typeof1);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,strtonum);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,sqrt);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,cos);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
         i=strcmp(name,sin);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
+            yyerror("ERROR: cannot use library function as name variable\n");
             return -1;
         }
 
