@@ -37,6 +37,11 @@ void insertLocalID(char* name, int scope, int line) {
     SymbolTableEntry *new_entry;
     Variable *new_var;
 
+    if(comparelibfunc(name) == -1) {
+        yyerror("\t");
+        return;
+    }
+
     temp = lookupScope(name, scope);
 
     if(temp == NULL) {
@@ -60,10 +65,6 @@ void insertLocalID(char* name, int scope, int line) {
     if(temp -> type == USERFUNC && temp -> isActive == 1) {
         yyerror("ERROR: A user function with that name already exists!\n");
     }   
-
-    if(comparelibfunc(name) == -1) {
-        return;
-    }
 
     return;
 }

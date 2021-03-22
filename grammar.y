@@ -17,7 +17,8 @@
     int arg_index = 0;
 
     int anonFuncCounter = 0;
-
+    int loopFlag = 0;
+    int funcFlag = 0;
 %}
 
 %union{
@@ -82,9 +83,24 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |ifstmt {printf("ifstmt -> stmt\n");}
     |whilestmt  {printf("whilestmt -> stmt\n");}
     |forstmt    {printf("forstmt -> stmt\n");}
-    |returnstmt    {printf("returnstmt -> stmt\n");}
-    |BREAK SEMICOLON    {printf("break; -> stmt\n");}
-    |CONTINUE SEMICOLON {printf("continue; -> stmt\n");}
+    |returnstmt    {
+                printf("returnstmt -> stmt\n");
+                if(funcFlag == 0) {
+                    yyerror("ERROR: return statement outside function\t");
+                }
+            }
+    |BREAK SEMICOLON    {
+            printf("break; -> stmt\n");
+            if(loopFlag == 0) {
+                yyerror("ERROR: break statement outside loop\t");
+            }
+        }
+    |CONTINUE SEMICOLON {
+            printf("continue; -> stmt\n");
+            if(loopFlag == 0) {
+                yyerror("ERROR: continue statement outside loop\t");
+            }
+        }
     |block  {printf("block -> stmt\n");}
     |funcdef    {printf("funcdef -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
@@ -110,15 +126,66 @@ expr: assignexpr    {printf("assignexpr -> expr\n");}
 term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
     |OPERATOR_MINUS expr    {printf("- expr -> term\n");}
     |NOT expr  		{printf("not expr -> term\n");}
-    |OPERATOR_PP lvalue {printf("++lvalue -> term\n");}
-    |lvalue OPERATOR_PP {printf("lvalue++ -> term\n");}
-    |OPERATOR_MM lvalue {printf("--lvalue -> term\n");}
-    |lvalue OPERATOR_MM {printf("lvalue-- -> term\n");}
+    |OPERATOR_PP lvalue {
+            printf("++lvalue -> term\n");
+            SymbolTableEntry* temp;
+            temp = lookupScope(yylval.strVal, scope);
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                }
+            }
+        }
+    |lvalue {
+                SymbolTableEntry* temp;
+                temp = lookupScope(yylval.strVal, scope);
+                if(temp != NULL) {
+                    if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                        yyerror("ERROR: Function cannot be used as lvalue\t");
+                    }
+                }
+    }   OPERATOR_PP {printf("lvalue++ -> term\n");}
+    |OPERATOR_MM lvalue {
+            printf("--lvalue -> term\n");
+            SymbolTableEntry* temp;
+            temp = lookupScope(yylval.strVal, scope);
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                }
+            }
+        }
+    |lvalue {
+            printf("++lvalue -> term\n");
+            SymbolTableEntry* temp;
+            temp = lookupScope(yylval.strVal, scope);
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                }
+            }
+        } OPERATOR_MM {
+            printf("lvalue-- -> term\n");
+
+        }
     |primary    {printf("primary -> term\n");}
     ;
 
-assignexpr: lvalue OPERATOR_ASSIGN expr {
-        printf("lvalue = expr -> assignexpr\n");
+assignexpr: lvalue {
+                SymbolTableEntry* temp;
+                temp = lookupScope(yylval.strVal, scope);
+                if(temp != NULL) {
+                    if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                        yyerror("ERROR: Function cannot be used as lvalue\t");
+                    }
+                }
+            }
+            OPERATOR_ASSIGN expr {
+            printf("lvalue = expr -> assignexpr\n");
+            
+        }
+    | call OPERATOR_ASSIGN expr {
+        yyerror("ERROR: function call cannot be an lvalue\t");
     }
     ;
 
@@ -130,8 +197,21 @@ primary: lvalue {printf("lvalue -> primary\n");}
     ;
 
 lvalue: ID  {
+    SymbolTableEntry* temp;
     printf("ID -> lvalue\n");
+    if(funcFlag != 0) {
+        temp = lookupEverything(yylval.strVal, scope);
+        if(temp != NULL) {
+            if(loopFlag == 0) {
+                if(getEntryScope(temp) != 0 && getEntryScope(temp) != scope && temp -> type  != USERFUNC) {
+                        printf("ERROR: Cannot access %s inside function", getEntryName(temp));
+                        yyerror("\t");
+                }
+            }
+        }
+    }
     insertID(yylval.strVal, scope, yylineno);
+
 }
 
     |LOCAL_KEYWORD ID   {
@@ -156,9 +236,40 @@ member: lvalue DOT ID   {printf("lvalue.ID -> mebmer\n");}
     ;
 
 call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {printf("call(elist) -> call\n");}
-    |lvalue callsuffix  {printf("lvalue() -> call\n");}
+    |lvalue{
+            SymbolTableEntry* temp;
+
+            temp = lookupforCalls(yylval.strVal, scope);
+            if(temp != NULL){
+                if(getEntryScope(temp) != 0 && getEntryScope(temp) != scope && temp-> type  != USERFUNC) {
+                    printf("ERROR: Cannot access %s inside function", getEntryName(temp));
+                    yyerror("\t");
+                }
+            }else{
+                temp = lookupEverything(yylval.strVal, scope);
+                if(temp != NULL) {
+                    if(temp -> type == GLOBAL || temp -> type == LOCAL) {
+                        yyerror("ERROR: variable cannot be used as a function call\t");
+                    }
+                }
+            }
+
+            
+    } callsuffix  {
+            printf("lvalue() -> call\n");
+            
+        }
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
-        {printf("(funcdef)(elist) -> call\n");}
+        {
+            printf("(funcdef)(elist) -> call\n");
+            SymbolTableEntry* temp;
+            temp = lookupEverything(yylval.strVal, scope);
+            if(temp != NULL) {
+                if(temp -> type == GLOBAL || temp -> type == LOCAL) {
+                    yyerror("ERROR: variable cannot be used as a function call\t");
+                }
+            }    
+        }
     ;
 
 callsuffix: methodcall {printf("methodcall -> callsuffix\n");}
@@ -200,6 +311,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
     ;
 
 funcdef: FUNCTION ID {
+        funcFlag++;
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
@@ -240,7 +352,7 @@ funcdef: FUNCTION ID {
                 printf("ERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE", temp_func -> name);
                 yyerror("\t");
             }
-            else{
+            if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
                 printf("ERROR: Variable %s already defined", temp_func -> name);
                 yyerror("\t");
             }
@@ -255,10 +367,12 @@ funcdef: FUNCTION ID {
         temp_func -> scope = 0;
         temp_func -> line = 0;
         for(i = 0;i < arg_index;i++)
-        temp_func -> arguments[i] = ""; 
-        
+            temp_func -> arguments[i] = ""; 
+        arg_index = 0;
+        funcFlag--;
     }
     |FUNCTION {
+        funcFlag++;
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         anonFuncCounter++;
@@ -305,9 +419,10 @@ funcdef: FUNCTION ID {
                 printf("ERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE", temp_func -> name);
                 yyerror("\t");
             }
-            else{
+            if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
                 printf("ERROR: Variable %s already defined", temp_func -> name);
                 yyerror("\t");
+            
             }
         }
 
@@ -319,7 +434,9 @@ funcdef: FUNCTION ID {
         temp_func -> scope = 0;
         temp_func -> line = 0;
         for(i = 0;i < arg_index;i++)
-        temp_func -> arguments[i] = ""; 
+            temp_func -> arguments[i] = "";
+        arg_index = 0;
+        funcFlag--; 
     }
     ;
 
@@ -336,94 +453,12 @@ idlist: ID {
         SymbolTableEntry *new_entry;
         Variable *new_var;
 
-        temp = lookupScope(yylval.strVal, scope+1); 
-
-        if(temp == NULL){
-            new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-            new_var = (Variable*)malloc(sizeof(Variable));
-
-            temp_func -> arguments[arg_index] = yylval.strVal;
-            arg_index++;
-
-            new_var -> name = yylval.strVal;
-            new_var -> scope = scope + 1;
-            new_var -> line = yylineno;
-
-            new_entry -> isActive = 1;
-            new_entry -> varVal = new_var;
-            new_entry -> funcVal = NULL;
-            new_entry -> type = FORMAL;
-
-            insertEntry(new_entry);
-           
+        if(comparelibfunc(yylval.strVal) == -1){
+            yyerror("\t");
         }else{
-            
-            if(comparelibfunc(yylval.strVal) == -1){
-                return;
-            }
+            temp = lookupScope(yylval.strVal, scope+1); 
 
-            int j, flag = 1;
-            for(j = 0; j < arg_index; j++){
-                flag = strcmp(getEntryName(temp), temp_func -> arguments[j]);
-                if(flag == 0) break;
-            }
-            
-            if(temp -> type == FORMAL && flag != 0){
-            new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-            new_var = (Variable*)malloc(sizeof(Variable));
-
-            temp_func -> arguments[arg_index] = yylval.strVal;
-            arg_index++;
-
-            new_var -> name = yylval.strVal;
-            new_var -> scope = scope + 1;
-            new_var -> line = yylineno;
-
-            new_entry -> isActive = 1;
-            new_entry -> varVal = new_var;
-            new_entry -> funcVal = NULL;
-            new_entry -> type = FORMAL;
-
-            insertEntry(new_entry);
-            }
-            else{
-                yyerror("ERROR: Symbol with this name already exists!\t");
-            }      
-        }
-    }
-    |ID {
-        SymbolTableEntry *temp;
-        SymbolTableEntry *new_entry;
-        Variable *new_var;
-
-        temp = lookupScope(yylval.strVal, scope+1); 
-        
-        if(temp == NULL){
-            new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-            new_var = (Variable*)malloc(sizeof(Variable));
-
-            temp_func -> arguments[arg_index] = yylval.strVal;
-            arg_index++;
-
-            new_var -> name = yylval.strVal;
-            new_var -> scope = scope + 1;
-            new_var -> line = yylineno;
-
-            new_entry -> isActive = 1;
-            new_entry -> varVal = new_var;
-            new_entry -> funcVal = NULL;
-            new_entry -> type = FORMAL;
-
-            insertEntry(new_entry);
-           
-        }else{
-            
-            if(comparelibfunc(yylval.strVal) == -1){
-                return;
-            }
-
-            int flag = strcmp(getEntryName(temp), yylval.strVal);
-            if(temp -> type == FORMAL && flag != 0){
+            if(temp == NULL){
                 new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
                 new_var = (Variable*)malloc(sizeof(Variable));
 
@@ -440,13 +475,103 @@ idlist: ID {
                 new_entry -> type = FORMAL;
 
                 insertEntry(new_entry);
-            }
-            else{
-                yyerror("ERROR: Symbol with this name already exists!\t");
-                return;
-            }
+                
+            }else{
 
-                 
+                int j, flag = 1;
+                for(j = 0; j < arg_index; j++){
+                    flag = strcmp(getEntryName(temp), temp_func -> arguments[j]);
+                    if(flag == 0) break;
+                }
+                
+                if(temp -> type == FORMAL && flag != 0){
+                    new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+                    new_var = (Variable*)malloc(sizeof(Variable));
+
+                    temp_func -> arguments[arg_index] = yylval.strVal;
+                    arg_index++;
+
+                    new_var -> name = yylval.strVal;
+                    new_var -> scope = scope + 1;
+                    new_var -> line = yylineno;
+
+                    new_entry -> isActive = 1;
+                    new_entry -> varVal = new_var;
+                    new_entry -> funcVal = NULL;
+                    new_entry -> type = FORMAL;
+
+                    insertEntry(new_entry);
+                }
+                else{
+                    printf("%s %d\n", getEntryName(temp), arg_index);
+                    yyerror("ERROR: Symbol with this name already exists!\t");
+                }      
+            }
+        }
+
+        
+    }
+    |ID {
+        SymbolTableEntry *temp;
+        SymbolTableEntry *new_entry;
+        Variable *new_var;
+
+        if(comparelibfunc(yylval.strVal) == -1){
+           yyerror("\t");
+        }else{
+            temp = lookupScope(yylval.strVal, scope+1); 
+        
+            if(temp == NULL){
+                new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+                new_var = (Variable*)malloc(sizeof(Variable));
+
+                temp_func -> arguments[arg_index] = yylval.strVal;
+                arg_index++;
+
+                new_var -> name = yylval.strVal;
+                new_var -> scope = scope + 1;
+                new_var -> line = yylineno;
+
+                new_entry -> isActive = 1;
+                new_entry -> varVal = new_var;
+                new_entry -> funcVal = NULL;
+                new_entry -> type = FORMAL;
+
+                insertEntry(new_entry);
+            
+            }else{
+
+                int flag = 1,j;
+                for(j = 0; j < arg_index; j++){
+                    flag = strcmp(getEntryName(temp), temp_func -> arguments[j]);
+                    if(flag == 0) break;
+                }
+                if(temp -> type == FORMAL && flag != 0){
+                    new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+                    new_var = (Variable*)malloc(sizeof(Variable));
+
+                    temp_func -> arguments[arg_index] = yylval.strVal;
+                    arg_index++;
+
+                    new_var -> name = yylval.strVal;
+                    new_var -> scope = scope + 1;
+                    new_var -> line = yylineno;
+
+                    new_entry -> isActive = 1;
+                    new_entry -> varVal = new_var;
+                    new_entry -> funcVal = NULL;
+                    new_entry -> type = FORMAL;
+
+                    insertEntry(new_entry);
+                }
+                else{
+                    
+                    printf("%s %d\n", getEntryName(temp), arg_index);
+                    yyerror("ERROR: Symbol with this name already exists!\t");
+                    return;
+                }         
+           }
+        
         }
     }
     COMMA idlist
@@ -457,11 +582,11 @@ ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("if(expr) -> i
     |IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt    {printf("if(expr) else -> ifstmt\n");}
     ;
 
-whilestmt: WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("while(expr) -> whilestmt\n");}
+whilestmt: WHILE {loopFlag++;} LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("while(expr) -> whilestmt\n"); loopFlag--;}
     ;    
 
-forstmt: FOR LEFT_PARENTHESIS elist SEMICOLON expr SEMICOLON elist RIGHT_PARENTHESIS stmt
-        {printf("for(elist;expr;elist)stmt -> forstmt\n");}
+forstmt: FOR {loopFlag++;} LEFT_PARENTHESIS elist SEMICOLON expr SEMICOLON elist RIGHT_PARENTHESIS stmt
+        {printf("for(elist;expr;elist)stmt -> forstmt\n"); loopFlag--;}
     ;
 
 returnstmt: RETURN expr SEMICOLON   {printf("return expr ; -> returnstmt\n");} 

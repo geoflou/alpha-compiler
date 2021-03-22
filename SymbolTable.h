@@ -74,3 +74,5 @@ int getEntryLine(SymbolTableEntry *symbol);
 int getEntryScope(SymbolTableEntry *symbol);
 
 int comparelibfunc(char *name);
+
+SymbolTableEntry *lookupforCalls(char *name, int scope);

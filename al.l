@@ -62,7 +62,7 @@
 
         if(tmp == NULL){
             printf("No tokens recognized\n");
-            return;
+           return;
         }
 
         while(tmp != NULL){
@@ -92,9 +92,7 @@ FUNCTION        "function"
 RETURN          "return"
 BREAK           "break"
 CONTINUE        "continue"
-AND             "and"
-NOT             "not"
-OR              "or"
+
 LOCAL_KEYWORD           "local"
 TRUE            "true"
 FALSE           "false"
@@ -107,6 +105,9 @@ OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
 OPERATOR_NEQ    "!="
+NOT    "not"
+AND    "and"
+OR     "or"
 OPERATOR_PP     "++"
 OPERATOR_MM     "--"
 OPERATOR_GRT    ">"
@@ -216,8 +217,7 @@ UNKNOWN_TOKEN       .
 {RETURN}              {return RETURN;}
 {BREAK}               {return BREAK;}
 {CONTINUE}            {return CONTINUE;}
-{AND}                 {return AND;}
-{OR}                  {return OR;}
+
 {LOCAL_KEYWORD}       {return LOCAL_KEYWORD;}
 {TRUE}                {return TRUE;}
 {FALSE}               {return FALSE;}
@@ -231,7 +231,9 @@ UNKNOWN_TOKEN       .
 {OPERATOR_ASSIGN}     {return OPERATOR_ASSIGN;}
 {OPERATOR_MOD}        {return OPERATOR_MOD;}
 {OPERATOR_EQ}         {return OPERATOR_EQ;}
-{OPERATOR_NOT}        {return OPERATOR_NOT;}
+{NOT}        	      {return NOT;}
+{AND}		      {return AND;}
+{OR}		      {return OR;}
 {OPERATOR_PP}         {return OPERATOR_PP;}
 {OPERATOR_MM}         {return OPERATOR_MM;}
 {OPERATOR_GRT}        {return OPERATOR_GRT;}
