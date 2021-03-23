@@ -62,7 +62,7 @@
 
         if(tmp == NULL){
             printf("No tokens recognized\n");
-           return;
+            return;
         }
 
         while(tmp != NULL){
@@ -135,7 +135,6 @@ UNKNOWN_TOKEN       .
 %%
 
 
-{SLASH_COMMENT}      {}
 {MULTI_COMMENT}    {
                             int commentCloseFlag = 1;
                             int index = 2;
@@ -161,10 +160,10 @@ UNKNOWN_TOKEN       .
                                     charIndex = input();
                                     if(charIndex == '*'){
                                        *(fixedToken + index) = charIndex;
-                                       commentCloseFlag++; 
-                                       index++;
-                                       charIndex = input();
-                                       continue;
+                                        commentCloseFlag++; 
+                                        index++;
+                                        charIndex = input();
+                                        continue;
                                     }
                                 }
 
@@ -198,6 +197,7 @@ UNKNOWN_TOKEN       .
                             
                             
 }
+{SLASH_COMMENT}      {}
 
 {LEFT_BRACE}          {return LEFT_BRACE;}
 {RIGHT_BRACE}         {return RIGHT_BRACE;}
@@ -212,8 +212,8 @@ UNKNOWN_TOKEN       .
 {WHILE}               {return WHILE;}
 {FOR}                 {return FOR;}
 {FUNCTION}            {yylval.strVal = strdup(yytext);
-                       return FUNCTION;
-                      }
+                        return FUNCTION;
+                        }
 {RETURN}              {return RETURN;}
 {BREAK}               {return BREAK;}
 {CONTINUE}            {return CONTINUE;}
@@ -241,9 +241,9 @@ UNKNOWN_TOKEN       .
 {OPERATOR_GRE}        {return OPERATOR_GRE;}
 {OPERATOR_LEE}        {return OPERATOR_LEE;}
 {INTEGER}             {yylval.intVal = atoi(yytext);
-                       return INTEGER;}
+                        return INTEGER;}
 {REAL}                {yylval.doubleVal = strtod(yytext, &useless_ptr);
-                       return REAL;}
+                        return REAL;}
 {LEFT_BRACKET}        {return LEFT_BRACKET;}
 {RIGHT_BRACKET}       {return RIGHT_BRACKET;}
 {LEFT_PARENTHESIS}    {return LEFT_PARENTHESIS;}
