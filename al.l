@@ -185,7 +185,7 @@ UNKNOWN_TOKEN       .
                             }
 
                             if(commentCloseFlag != 0){
-                                alphaListInsert(line, "ERROR", "Comment never closed", "");
+                                printf("\033[31mIn line %d ERROR: Comment never closed!\033[0m\n",line);
                                 return;
                             }
                             alphaListInsert(line, fixedToken, "MULTI_LINE_COMMENT" , "<-enumerated");
