@@ -287,7 +287,7 @@ UNKNOWN_TOKEN       .
                         continue;
                     }
                     else {
-                        printf("In line %d ERROR: Invalid escape sequence\n",line);
+                        printf("\033[31mIn line %d ERROR: Invalid escape sequence\033[0m\n",line);
                         return -1;
                     }
                     
@@ -309,7 +309,7 @@ UNKNOWN_TOKEN       .
             }
 
             if(backSlashCounter % 2 != 0){
-                alphaListInsert(line, "ERROR", "Invalid backslash escape sequence", "");
+                printf("\033[31mIn line %d ERROR: Invalid backslash escape sequence\033[0m\n",line);
                 return -1;
             }
 
@@ -317,14 +317,14 @@ UNKNOWN_TOKEN       .
                 alphaListInsert(line, fixedString, "STRING" , "<-char*");
             }
             else{
-                alphaListInsert(line, "ERROR", "Closing '\"' expected!", "");
+                printf("\033[31mIn line %d ERROR: Closing \" expected\033[0m\n",line);
             }
 
 }
 
 {ID}    {alphaListInsert(yylineno, yytext, "ID", "<-char*");}
 
-{UNKNOWN_TOKEN} {alphaListInsert(yylineno, yytext, "UNKNOWN_TOKEN", "");}
+{UNKNOWN_TOKEN} {printf("\033[31mIn line %d ERROR: Unknown token %s\033[0m\n",line, yytext);}
 
 %%
 
