@@ -54,7 +54,7 @@
 
         if(tmp == NULL){
             printf("No tokens recognized\n");
-           return;
+            return;
         }
 
         while(tmp != NULL){
@@ -69,7 +69,6 @@
 
 
       void commentCheck(int line,char *text){
-       
     }
 %}
 
@@ -130,7 +129,6 @@ SINGLE_COMMENT      "//".*
 UNKNOWN_TOKEN       .
 %%
 
-{SINGLE_COMMENT}      {alphaListInsert(yylineno, yytext, "SINGLE_LINE_COMMENT", "<-enumerated");}
 {MULTI_LINE_COMMENT}    {
                             int commentCloseFlag = 1;
                             int index = 2;
@@ -156,10 +154,10 @@ UNKNOWN_TOKEN       .
                                     charIndex = input();
                                     if(charIndex == '*'){
                                        *(fixedToken + index) = charIndex;
-                                       commentCloseFlag++; 
-                                       index++;
-                                       charIndex = input();
-                                       continue;
+                                        commentCloseFlag++; 
+                                        index++;
+                                        charIndex = input();
+                                        continue;
                                     }
                                 }
 
@@ -194,7 +192,7 @@ UNKNOWN_TOKEN       .
                             
 }
 
-
+{SINGLE_COMMENT}      {alphaListInsert(yylineno, yytext, "SINGLE_LINE_COMMENT", "<-enumerated");}
 {LEFT_BRACE}          {alphaListInsert(yylineno,yytext,"LEFT_BRACE", "<-enumerated");}
 {RIGHT_BRACE}         {alphaListInsert(yylineno,yytext,"RIGHT_BRACE", "<-enumerated");}
 {SEMICOLON}           {alphaListInsert(yylineno,yytext,"SEMICOLON", "<-enumerated");}
