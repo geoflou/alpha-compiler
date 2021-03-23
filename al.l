@@ -191,7 +191,7 @@ UNKNOWN_TOKEN       .
                             }
 
                             if(commentCloseFlag != 0){
-                                printf("In line %d ERROR: Comment never closed\n",line);
+                                printf("\033[31mIn line %d ERROR: Comment never closed!\033[0m\n",line);
                                 return -1;
                             }
                             
@@ -297,7 +297,7 @@ UNKNOWN_TOKEN       .
                         continue;
                     }
                     else {
-                        printf("In line %d ERROR: Invalid escape sequence\n",line);
+                        printf("\033[31mIn line %d ERROR: Invalid escape sequence\033[0m\n",line);
                         return -1;
                     }    
                 }
@@ -319,7 +319,7 @@ UNKNOWN_TOKEN       .
 
 
             if(backSlashCounter % 2 != 0){
-                printf("In line %d ERROR: Invalid backslash escape sequence\n",line);
+                printf("\033[31mIn line %d ERROR: Invalid backslash escape sequence\033[0m\n",line);
                 return -1;
             }
 
@@ -328,7 +328,7 @@ UNKNOWN_TOKEN       .
                 return STRING;
             }
             else{
-                printf("In line %d ERROR: Closing '\"' expected\n", line);
+                printf("\033[31mIn line %d ERROR: Closing \" expected!\033[0m\n",line);
                 return -1;
             }
 
