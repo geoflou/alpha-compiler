@@ -310,7 +310,7 @@ UNKNOWN_TOKEN       .
 
             if(backSlashCounter % 2 != 0){
                 alphaListInsert(line, "ERROR", "Invalid backslash escape sequence", "");
-                return;
+                return -1;
             }
 
             if(closingQuoteFlag == 0){
