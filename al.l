@@ -255,13 +255,25 @@ UNKNOWN_TOKEN       .
             int backSlashCounter = 0;
             int line = yylineno;
             int closingQuoteFlag = 1;
-            char * fixedString =(char*) malloc(1024*sizeof(char*));
+            int size = 1024;
+            char* tmp;
+            char* fixedString =(char*) malloc(1024*sizeof(char*));
 
             *(fixedString + index) = charIndex;
             index++;
 
             charIndex = input();
-            while(charIndex != EOF){
+            while(charIndex != EOF && charIndex != '\0'){
+                
+                if(index >= size) {
+                    tmp = (char*)realloc(fixedString, size*2*sizeof(char));
+                    size = size * 2;
+                    if(tmp == NULL) {
+                        printf("\033[31mRealloc Failed\033[0m\n");
+                        return -1;
+                    }
+                    fixedString = tmp;
+                }
 
                 if(charIndex == '\\'){
                     charIndex = input();
@@ -299,7 +311,8 @@ UNKNOWN_TOKEN       .
                     else {
                         printf("\033[31mIn line %d ERROR: Invalid escape sequence\033[0m\n",line);
                         return -1;
-                    }    
+                    }
+                    
                 }
 
 
@@ -317,25 +330,24 @@ UNKNOWN_TOKEN       .
                 charIndex = input();
             }
 
-
             if(backSlashCounter % 2 != 0){
                 printf("\033[31mIn line %d ERROR: Invalid backslash escape sequence\033[0m\n",line);
                 return -1;
             }
 
-            if(closingQuoteFlag == 0){
-                yylval.strVal = strdup(fixedString);
-                return STRING;
-            }
-            else{
-                printf("\033[31mIn line %d ERROR: Closing \" expected!\033[0m\n",line);
+            if(closingQuoteFlag != 0){
+                printf("\033[31mIn line %d ERROR: Closing \" expected\033[0m\n",line);
                 return -1;
             }
+            
+            yylval.strVal = strdup(fixedString);
+            return STRING;
 
 }
 
+
 {ID}    {yylval.strVal = strdup(yytext);
-         return ID;}
+            return ID;}
 
 %%
 
