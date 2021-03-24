@@ -134,13 +134,26 @@ UNKNOWN_TOKEN       .
                             int index = 2;
                             int line = yylineno;
                             char charIndex;
+                            int size = 1024;
+                            char* tmp;
                             char* fixedToken = (char *)malloc(1024*sizeof(char*));
 
                             *(fixedToken + 0) = '/';
                             *(fixedToken + 1) = '*';
 
                             charIndex = input();
-                            while(charIndex != EOF && commentCloseFlag != 0){
+                            while(charIndex != EOF && charIndex != '\0' && commentCloseFlag != 0){
+                                
+                                if(index == size) {
+                                    tmp = (char*)realloc(fixedToken, size*2*sizeof(char));
+                                    size = size * 2;
+                                    if(tmp == NULL) {
+                                        printf("\033[31mRealloc Failed\033[0m\n");
+                                        return -1;
+                                    }
+                                    fixedToken = tmp;
+                                }
+
 
                                 if(charIndex == '\n'){
                                     charIndex = input();
@@ -155,10 +168,10 @@ UNKNOWN_TOKEN       .
                                     if(charIndex == '*'){
                                        *(fixedToken + index) = charIndex;
                                         commentCloseFlag++; 
-                                        index++;
                                         charIndex = input();
-                                        continue;
+                                        index++;
                                     }
+                                        continue;
                                 }
 
                                 if(charIndex == '*'){
@@ -172,22 +185,23 @@ UNKNOWN_TOKEN       .
                                         charIndex = input();
                                         if(commentCloseFlag == 0){
                                             break;
-                                        }else{
-                                            continue;
                                         }
+                                        continue;
+                                        
                                     }
                                 }
 
                                 *(fixedToken + index) = charIndex;
 
                                 charIndex = input();
-                                index++;        
+                                index++;     
                             }
 
                             if(commentCloseFlag != 0){
                                 printf("\033[31mIn line %d ERROR: Comment never closed!\033[0m\n",line);
-                                return;
+                                return -1;
                             }
+
                             alphaListInsert(line, fixedToken, "MULTI_LINE_COMMENT" , "<-enumerated");
                             
 }
@@ -245,13 +259,25 @@ UNKNOWN_TOKEN       .
             int backSlashCounter = 0;
             int line = yylineno;
             int closingQuoteFlag = 1;
-            char * fixedString =(char*) malloc(1024*sizeof(char*));
+            int size = 1024;
+            char* tmp;
+            char* fixedString =(char*) malloc(1024*sizeof(char*));
 
             *(fixedString + index) = charIndex;
             index++;
 
             charIndex = input();
-            while(charIndex != EOF){
+            while(charIndex != EOF && charIndex != '\0'){
+                
+                if(index >= size) {
+                    tmp = (char*)realloc(fixedString, size*2*sizeof(char));
+                    size = size * 2;
+                    if(tmp == NULL) {
+                        printf("\033[31mRealloc Failed\033[0m\n");
+                        return -1;
+                    }
+                    fixedString = tmp;
+                }
 
                 if(charIndex == '\\'){
                     charIndex = input();
@@ -313,18 +339,18 @@ UNKNOWN_TOKEN       .
                 return -1;
             }
 
-            if(closingQuoteFlag == 0){
-                alphaListInsert(line, fixedString, "STRING" , "<-char*");
-            }
-            else{
+            if(closingQuoteFlag != 0){
                 printf("\033[31mIn line %d ERROR: Closing \" expected\033[0m\n",line);
+                return -1;
             }
+            
+            alphaListInsert(line, fixedString, "STRING" , "<-char*");
 
 }
 
 {ID}    {alphaListInsert(yylineno, yytext, "ID", "<-char*");}
 
-{UNKNOWN_TOKEN} {printf("\033[31mIn line %d ERROR: Unknown token %s\033[0m\n",line, yytext);}
+{UNKNOWN_TOKEN} {printf("\033[31mIn line %d ERROR: Unknown token %s \033[0m\n",yylineno, yytext);}
 
 %%
 
