@@ -140,13 +140,26 @@ UNKNOWN_TOKEN       .
                             int index = 2;
                             int line = yylineno;
                             char charIndex;
+                            int size = 1024;
+                            char* tmp;
                             char* fixedToken = (char *)malloc(1024*sizeof(char*));
 
                             *(fixedToken + 0) = '/';
                             *(fixedToken + 1) = '*';
 
                             charIndex = input();
-                            while(charIndex != EOF && commentCloseFlag != 0){
+                            while(charIndex != EOF && charIndex != '\0' && commentCloseFlag != 0){
+                                
+                                if(index == size) {
+                                    tmp = (char*)realloc(fixedToken, size*2*sizeof(char));
+                                    size = size * 2;
+                                    if(tmp == NULL) {
+                                        printf("\033[31mRealloc Failed\033[0m\n");
+                                        return -1;
+                                    }
+                                    fixedToken = tmp;
+                                }
+
 
                                 if(charIndex == '\n'){
                                     charIndex = input();
@@ -161,10 +174,10 @@ UNKNOWN_TOKEN       .
                                     if(charIndex == '*'){
                                        *(fixedToken + index) = charIndex;
                                         commentCloseFlag++; 
-                                        index++;
                                         charIndex = input();
-                                        continue;
+                                        index++;
                                     }
+                                        continue;
                                 }
 
                                 if(charIndex == '*'){
@@ -178,23 +191,23 @@ UNKNOWN_TOKEN       .
                                         charIndex = input();
                                         if(commentCloseFlag == 0){
                                             break;
-                                        }else{
-                                            continue;
                                         }
+                                        continue;
+                                        
                                     }
                                 }
 
                                 *(fixedToken + index) = charIndex;
 
                                 charIndex = input();
-                                index++;        
+                                index++;     
                             }
 
                             if(commentCloseFlag != 0){
                                 printf("\033[31mIn line %d ERROR: Comment never closed!\033[0m\n",line);
                                 return -1;
                             }
-                            
+
                             
 }
 {SLASH_COMMENT}      {}
