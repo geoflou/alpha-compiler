@@ -7,6 +7,6 @@
 
 
 *.out
-*.text
+*.txt
 *.asc
 *.alpha
