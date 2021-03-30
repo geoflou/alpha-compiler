@@ -1,1 +1,2 @@
-"aasdasda \m"
+local x;
+x..f();

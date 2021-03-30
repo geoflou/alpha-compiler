@@ -26,7 +26,7 @@ void insertID(char* name, int scope, int line) {
     }
     
     if(getEntryType(temp) == "USERFUNC" && temp -> isActive == 1) {
-        yyerror("ERROR: A function has taken already that name!");
+        printf("\033[31mERROR: A function has taken already that name!\033[0m");
     }
     
     return;
@@ -63,7 +63,7 @@ void insertLocalID(char* name, int scope, int line) {
     }
 
     if(temp -> type == USERFUNC && temp -> isActive == 1) {
-        yyerror("ERROR: A user function with that name already exists!\n");
+        printf("\033[31mERROR: A user function with that name already exists!\033[0m\n");
     }   
 
     return;

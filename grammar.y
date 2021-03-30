@@ -13,6 +13,8 @@
 
     int scope = 0;
 
+    char* currFunc;
+
     Function* temp_func;
     int arg_index = 0;
 
@@ -86,19 +88,19 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |returnstmt    {
                 printf("returnstmt -> stmt\n");
                 if(funcFlag == 0) {
-                    yyerror("ERROR: return statement outside function\t");
+                    yyerror("\033[31mERROR: return statement outside function\033[0m\t");
                 }
             }
     |BREAK SEMICOLON    {
             printf("break; -> stmt\n");
             if(loopFlag == 0) {
-                yyerror("ERROR: break statement outside loop\t");
+                yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
             }
         }
     |CONTINUE SEMICOLON {
             printf("continue; -> stmt\n");
             if(loopFlag == 0) {
-                yyerror("ERROR: continue statement outside loop\t");
+                yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
             }
         }
     |block  {printf("block -> stmt\n");}
@@ -132,7 +134,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
             temp = lookupScope(yylval.strVal, scope);
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                 }
             }
         }
@@ -141,7 +143,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
                 temp = lookupScope(yylval.strVal, scope);
                 if(temp != NULL) {
                     if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                        yyerror("ERROR: Function cannot be used as lvalue\t");
+                        yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                     }
                 }
     }   OPERATOR_PP {printf("lvalue++ -> term\n");}
@@ -151,7 +153,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
             temp = lookupScope(yylval.strVal, scope);
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                 }
             }
         }
@@ -161,7 +163,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
             temp = lookupScope(yylval.strVal, scope);
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("ERROR: Function cannot be used as lvalue\t");
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                 }
             }
         } OPERATOR_MM {
@@ -176,7 +178,7 @@ assignexpr: lvalue {
                 temp = lookupScope(yylval.strVal, scope);
                 if(temp != NULL) {
                     if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                        yyerror("ERROR: Function cannot be used as lvalue\t");
+                        yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                     }
                 }
             }
@@ -185,7 +187,7 @@ assignexpr: lvalue {
             
         }
     | call OPERATOR_ASSIGN expr {
-        yyerror("ERROR: function call cannot be an lvalue\t");
+        yyerror("\033[31mERROR: function call cannot be an lvalue\033[0m\t");
     }
     ;
 
@@ -197,19 +199,21 @@ primary: lvalue {printf("lvalue -> primary\n");}
     ;
 
 lvalue: ID  {
-    SymbolTableEntry* temp;
+    int searchScope;
+    SymbolTableEntry *temp, *f;
     printf("ID -> lvalue\n");
     if(funcFlag != 0) {
+        f = lookupEverything(currFunc, scope);
+        assert(f != NULL);
+        searchScope = getEntryScope(f);
         temp = lookupEverything(yylval.strVal, scope);
         if(temp != NULL) {
-            if(loopFlag == 0) {
-                if(getEntryScope(temp) != 0 && getEntryScope(temp) != scope && temp -> type  != USERFUNC) {
-                        printf("ERROR: Cannot access %s inside function", getEntryName(temp));
+                if(getEntryScope(temp) != 0 && getEntryScope(temp) <= (searchScope) && temp -> type  != USERFUNC) {
+                        printf("\033[31mERROR: Cannot access %s inside function\033[0m", getEntryName(temp));
                         yyerror("\t");
                 }
             }
         }
-    }
     insertID(yylval.strVal, scope, yylineno);
 
 }
@@ -221,7 +225,7 @@ lvalue: ID  {
     |DOUBLE_COLON ID    {  
         printf("::ID -> lvalue\n");
         if(lookupScope(yylval.strVal, 0) == NULL) {
-            yyerror("ERROR: Global variable cannot be found!\t");
+            yyerror("\033[31mERROR: Global variable cannot be found!\033[0m\t");
         }   
     }
     |member {
@@ -238,41 +242,24 @@ member: lvalue DOT ID   {printf("lvalue.ID -> mebmer\n");}
 call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {printf("call(elist) -> call\n");}
     |lvalue{
             SymbolTableEntry* temp;
-
             temp = lookupforCalls(yylval.strVal, scope);
             if(temp != NULL){
                 if(getEntryScope(temp) != 0 && getEntryScope(temp) != scope && temp-> type  != USERFUNC) {
-                    printf("ERROR: Cannot access %s inside function", getEntryName(temp));
+                    printf("\033[31mERROR: Cannot access %s inside function\033[0m", getEntryName(temp));
                     yyerror("\t");
                 }
-            }else{
-                temp = lookupEverything(yylval.strVal, scope);
-                if(temp != NULL) {
-                    if(temp -> type == GLOBAL || temp -> type == LOCAL) {
-                        yyerror("ERROR: variable cannot be used as a function call\t");
-                    }
-                }
             }
-
             
     } callsuffix  {
             printf("lvalue() -> call\n");
-            
         }
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
-        {
-            printf("(funcdef)(elist) -> call\n");
-            SymbolTableEntry* temp;
-            temp = lookupEverything(yylval.strVal, scope);
-            if(temp != NULL) {
-                if(temp -> type == GLOBAL || temp -> type == LOCAL) {
-                    yyerror("ERROR: variable cannot be used as a function call\t");
-                }
-            }    
-        }
+        {printf("(funcdef)(elist) -> call\n");}
     ;
 
-callsuffix: methodcall {printf("methodcall -> callsuffix\n");}
+callsuffix: methodcall {
+        printf("methodcall -> callsuffix\n");
+    }
     |normcall   {printf("normcall -> callsuffix\n");}
     ;
 
@@ -312,6 +299,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
 
 funcdef: FUNCTION ID {
         funcFlag++;
+        currFunc = strdup(yylval.strVal);
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
@@ -344,16 +332,16 @@ funcdef: FUNCTION ID {
         }
         else{
             if(temp -> type == LIBFUNC){
-                printf("ERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION", temp_func -> name);
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION\033[0m", temp_func -> name);
                 yyerror("\t");
             }
 
             if(temp -> type == USERFUNC){
-                printf("ERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE", temp_func -> name);
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE\033[0m", temp_func -> name);
                 yyerror("\t");
             }
             if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
-                printf("ERROR: Variable %s already defined", temp_func -> name);
+                printf("\033[31mERROR: Variable %s already defined\033[0m", temp_func -> name);
                 yyerror("\t");
             }
         }
@@ -375,6 +363,7 @@ funcdef: FUNCTION ID {
         funcFlag++;
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
+        currFunc = strdup(fname);
         anonFuncCounter++;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
@@ -411,16 +400,16 @@ funcdef: FUNCTION ID {
         else{
             
             if(temp -> type == LIBFUNC){
-                printf("ERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION", temp_func -> name);
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION\033[0m", temp_func -> name);
                 yyerror("\t");
             }
 
             if(temp -> type == USERFUNC){
-                printf("ERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE", temp_func -> name);
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE\033[0m", temp_func -> name);
                 yyerror("\t");
             }
             if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
-                printf("ERROR: Variable %s already defined", temp_func -> name);
+                printf("\033[31mERROR: Variable %s already defined\033[0m", temp_func -> name);
                 yyerror("\t");
             
             }
@@ -504,7 +493,7 @@ idlist: ID {
                 }
                 else{
                     printf("%s %d\n", getEntryName(temp), arg_index);
-                    yyerror("ERROR: Symbol with this name already exists!\t");
+                    yyerror("\033[31mERROR: Symbol with this name already exists!\033[0m\t");
                 }      
             }
         }
@@ -567,10 +556,10 @@ idlist: ID {
                 else{
                     
                     printf("%s %d\n", getEntryName(temp), arg_index);
-                    yyerror("ERROR: Symbol with this name already exists!\t");
+                    yyerror("\033[31mERROR: Symbol with this name already exists!\033[0m\t");
                     return;
                 }         
-           }
+            }
         
         }
     }
