@@ -21,6 +21,7 @@
     int anonFuncCounter = 0;
     int loopFlag = 0;
     int funcFlag = 0;
+    int memberflag = 0;
 %}
 
 %union{
@@ -174,12 +175,16 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
     ;
 
 assignexpr: lvalue {
-                SymbolTableEntry* temp;
-                temp = lookupScope(yylval.strVal, scope);
-                if(temp != NULL) {
-                    if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                        yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                if(memberflag == 0){
+                    SymbolTableEntry* temp;
+                    temp = lookupScope(yylval.strVal, scope);
+                    if(temp != NULL) {
+                        if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                            yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                        }
                     }
+                }else{
+                    memberflag = 0;
                 }
             }
             OPERATOR_ASSIGN expr {
@@ -206,8 +211,9 @@ lvalue: ID  {
         f = lookupEverything(currFunc, scope);
         assert(f != NULL);
         searchScope = getEntryScope(f);
-        temp = lookupEverything(yylval.strVal, scope);
+        temp = lookupEverything(yylval.strVal, searchScope + 1);
         if(temp != NULL) {
+                printf("EDW %d\n", searchScope);
                 if(getEntryScope(temp) != 0 && getEntryScope(temp) <= (searchScope) && temp -> type  != USERFUNC) {
                         printf("\033[31mERROR: Cannot access %s inside function\033[0m", getEntryName(temp));
                         yyerror("\t");
@@ -216,8 +222,7 @@ lvalue: ID  {
         }
     insertID(yylval.strVal, scope, yylineno);
 
-}
-
+    }
     |LOCAL_KEYWORD ID   {
         printf("local ID -> lvalue\n");
         insertLocalID(yylval.strVal, scope, yylineno);
@@ -230,6 +235,7 @@ lvalue: ID  {
     }
     |member {
         printf("member -> lvalue\n");
+        memberflag = 1;
     }
     ;
 
@@ -308,7 +314,22 @@ funcdef: FUNCTION ID {
         SymbolTableEntry *temp;
         temp = lookupScope(temp_func -> name, temp_func -> scope);
 
-        if(temp == NULL){
+        if(temp != NULL){
+            if(temp -> type == LIBFUNC){
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION\033[0m", temp_func -> name);
+                yyerror("\t");
+            }
+
+            if(temp -> type == USERFUNC){
+                printf("\033[31mERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE\033[0m", temp_func -> name);
+                yyerror("\t");
+            }
+            if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
+                printf("\033[31mERROR: Variable %s already defined\033[0m", temp_func -> name);
+                yyerror("\t");
+            }
+        }
+        else{
             SymbolTableEntry *new_entry;
             Function *new_func;
             int i;
@@ -329,21 +350,6 @@ funcdef: FUNCTION ID {
             new_entry -> type = USERFUNC;
 
             insertEntry(new_entry);
-        }
-        else{
-            if(temp -> type == LIBFUNC){
-                printf("\033[31mERROR: FUNCTION NAME REDEFINITION! %s IS A LIBRARY FUNCTION\033[0m", temp_func -> name);
-                yyerror("\t");
-            }
-
-            if(temp -> type == USERFUNC){
-                printf("\033[31mERROR: FUNCTION NAME REDEFINITION %s IS ALREADY IN USE\033[0m", temp_func -> name);
-                yyerror("\t");
-            }
-            if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
-                printf("\033[31mERROR: Variable %s already defined\033[0m", temp_func -> name);
-                yyerror("\t");
-            }
         }
 
     }

@@ -1,1 +1,2 @@
-"aasdasda \m"
+object = [1, 2, 3];
+object[0] = "asdsadas";
