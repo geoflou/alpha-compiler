@@ -397,7 +397,7 @@ funcdef: FUNCTION ID {
             }
             
         }
-        else{
+        else {
             SymbolTableEntry *new_entry;
             Function *new_func;
             int i;
