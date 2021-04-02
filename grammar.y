@@ -213,8 +213,7 @@ lvalue: ID  {
         searchScope = getEntryScope(f);
         temp = lookupEverything(yylval.strVal, searchScope + 1);
         if(temp != NULL) {
-            printf("EDW %d\n", searchScope);
-            if(getEntryScope(temp) != 0 && getEntryScope(temp) <= (searchScope) && temp -> type  != USERFUNC) {
+            if(getEntryScope(temp) != 0 && getEntryScope(temp) < (searchScope + 1) && temp -> type != USERFUNC) {
                     printf("\033[31mERROR: Cannot access \"%s\" inside function\033[0m", getEntryName(temp));
                     yyerror("\t");
             }
@@ -344,7 +343,7 @@ funcdef: FUNCTION ID {
             new_func -> line = temp_func -> line;
             for(i = 0;i < arg_index;i++){
                 new_func -> arguments[i] = strdup(temp_func -> arguments[i]);
-                insertFormal(new_func -> arguments[i], scope + 1, yylineno);
+                insertFormal(new_func -> arguments[i], temp_func -> scope + 1, yylineno);
             }
             new_entry -> isActive = 1;
             new_entry -> varVal = NULL;
@@ -352,19 +351,17 @@ funcdef: FUNCTION ID {
             new_entry -> type = USERFUNC;
 
             insertEntry(new_entry);
+            temp_func -> name = "";
+            temp_func -> scope = 0;
+            temp_func -> line = 0;
+            for(i = 0;i < arg_index;i++)
+                temp_func -> arguments[i] = ""; 
+            arg_index = 0;
         }
 
     }
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
-        
-        int i = 0;
-        temp_func -> name = "";
-        temp_func -> scope = 0;
-        temp_func -> line = 0;
-        for(i = 0;i < arg_index;i++)
-            temp_func -> arguments[i] = ""; 
-        arg_index = 0;
         funcFlag--;
     }
     |FUNCTION {
@@ -413,7 +410,7 @@ funcdef: FUNCTION ID {
             for(i = 0;i < arg_index;i++){
                 new_func -> arguments[i] = (char*) malloc(sizeof(char)*100);
                 new_func -> arguments[i] = strdup(temp_func -> arguments[i]);
-                insertFormal(new_func -> arguments[i], scope + 1, yylineno);
+                insertFormal(new_func -> arguments[i], temp_func -> scope + 1, yylineno);
             }
 
             new_entry -> isActive = 1;
@@ -422,19 +419,19 @@ funcdef: FUNCTION ID {
             new_entry -> type = USERFUNC;
 
             insertEntry(new_entry);
+            
+            temp_func -> name = "";
+            temp_func -> scope = 0;
+            temp_func -> line = 0;
+            for(i = 0;i < arg_index;i++)
+                temp_func -> arguments[i] = "";
+            arg_index = 0;
+            
         }
 
     } block    {
         printf("function (idlist)block -> funcdef\n");
-
-        int i = 0;
-        temp_func -> name = "";
-        temp_func -> scope = 0;
-        temp_func -> line = 0;
-        for(i = 0;i < arg_index;i++)
-            temp_func -> arguments[i] = "";
-        arg_index = 0;
-        funcFlag--; 
+        funcFlag--;
     }
     ;
 
@@ -447,6 +444,7 @@ const: REAL
     ;
 
 idlist: ID {
+        printf("id -> idlist\n");
         int j;
         int flag = 1;
         
@@ -484,7 +482,7 @@ idlist: ID {
             arg_index++;
         }
     }
-    COMMA idlist
+    COMMA idlist {printf(", idlist -> idlist\n");}
     |{printf("empty -> idlist\n");}
     ;
 

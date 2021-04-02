@@ -401,73 +401,73 @@ int comparelibfunc(char *name){
 
         i=strcmp(name,print);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,input);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
         
         i=strcmp(name,objectmemberkeys);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,objecttotalmembers);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,objectcopy);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,totalarguments);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,argument);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,typeof1);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,strtonum);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,sqrt);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,cos);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 
         i=strcmp(name,sin);
         if(i==0){
-            printf("\033[31mERROR: cannot use library function as name variable\033[0m");
+            printf("\033[31mERROR: cannot use library function as name variable\033[0m\n");
             return -1;
         }
 

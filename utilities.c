@@ -24,7 +24,6 @@ void insertID(char* name, int scope, int line) {
         insertEntry(new_entry);
         return;
     }
-    printf("%s\n", getEntryName(temp));
     if(getEntryType(temp) == "USERFUNC" && temp -> isActive == 1) {
         printf("\033[31mERROR: A function has taken already that name!\033[0m");
     }
@@ -75,7 +74,6 @@ void insertFormal(char* name, int scope, int line) {
     Variable *new_var;
     
     assert(name != NULL);
-    printf("name -> %s\n", name);
     if(comparelibfunc(name) == -1) {
         return;
     }
