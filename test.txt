@@ -1,2 +1,3 @@
-object = [1, 2, 3];
-object[0] = "asdsadas";
+function (a,b,g,d,e,x, y, a) {
+
+}

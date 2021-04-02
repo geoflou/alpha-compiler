@@ -24,7 +24,7 @@ void insertID(char* name, int scope, int line) {
         insertEntry(new_entry);
         return;
     }
-    
+    printf("%s\n", getEntryName(temp));
     if(getEntryType(temp) == "USERFUNC" && temp -> isActive == 1) {
         printf("\033[31mERROR: A function has taken already that name!\033[0m");
     }
@@ -66,5 +66,32 @@ void insertLocalID(char* name, int scope, int line) {
         printf("\033[31mERROR: A user function with that name already exists!\033[0m\n");
     }   
 
+    return;
+}
+
+void insertFormal(char* name, int scope, int line) {
+    SymbolTableEntry *temp;
+    SymbolTableEntry *new_entry;
+    Variable *new_var;
+    
+    assert(name != NULL);
+    printf("name -> %s\n", name);
+    if(comparelibfunc(name) == -1) {
+        return;
+    }
+
+    new_entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+    new_var = (Variable*)malloc(sizeof(Variable));
+
+    new_var -> name = name;
+    new_var -> scope = scope;
+    new_var -> line = line;
+
+    new_entry -> isActive = 1;
+    new_entry -> varVal = new_var;
+    new_entry -> funcVal = NULL;
+    new_entry -> type = FORMAL;
+
+    insertEntry(new_entry);
     return;
 }
