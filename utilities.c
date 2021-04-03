@@ -37,6 +37,7 @@ void insertLocalID(char* name, int scope, int line) {
     Variable *new_var;
 
     if(comparelibfunc(name) == -1) {
+        printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
         yyerror("\t");
         return;
     }
@@ -75,6 +76,8 @@ void insertFormal(char* name, int scope, int line) {
     
     assert(name != NULL);
     if(comparelibfunc(name) == -1) {
+         printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
+        yyerror("\t");
         return;
     }
 
