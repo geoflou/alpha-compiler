@@ -62,7 +62,7 @@
 
         if(tmp == NULL){
             printf("No tokens recognized\n");
-           return;
+            return;
         }
 
         while(tmp != NULL){
@@ -92,9 +92,7 @@ FUNCTION        "function"
 RETURN          "return"
 BREAK           "break"
 CONTINUE        "continue"
-AND             "and"
-NOT             "not"
-OR              "or"
+
 LOCAL_KEYWORD           "local"
 TRUE            "true"
 FALSE           "false"
@@ -107,16 +105,16 @@ OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
 OPERATOR_NEQ    "!="
-OPERATOR_NOT    "!"
-OPERATOR_AND    "&&"
-OPERATOR_OR     "||"
+NOT    "not"
+AND    "and"
+OR     "or"
 OPERATOR_PP     "++"
 OPERATOR_MM     "--"
 OPERATOR_GRT    ">"
 OPERATOR_LES    "<"
 OPERATOR_GRE    ">="
 OPERATOR_LEE    "<="
-INTEGER         [][0-9]{1,}
+INTEGER         [0-9]{1,}
 REAL            [0-9]*\.?[0-9]{1,}
 LEFT_BRACKET        "{"
 RIGHT_BRACKET       "}"
@@ -137,19 +135,31 @@ UNKNOWN_TOKEN       .
 %%
 
 
-{SLASH_COMMENT}      {}
 {MULTI_COMMENT}    {
                             int commentCloseFlag = 1;
                             int index = 2;
                             int line = yylineno;
                             char charIndex;
+                            int size = 1024;
+                            char* tmp;
                             char* fixedToken = (char *)malloc(1024*sizeof(char*));
 
                             *(fixedToken + 0) = '/';
                             *(fixedToken + 1) = '*';
 
                             charIndex = input();
-                            while(charIndex != EOF && commentCloseFlag != 0){
+                            while(charIndex != EOF && charIndex != '\0' && commentCloseFlag != 0){
+                                
+                                if(index == size) {
+                                    tmp = (char*)realloc(fixedToken, size*2*sizeof(char));
+                                    size = size * 2;
+                                    if(tmp == NULL) {
+                                        printf("\033[31mRealloc Failed\033[0m\n");
+                                        return -1;
+                                    }
+                                    fixedToken = tmp;
+                                }
+
 
                                 if(charIndex == '\n'){
                                     charIndex = input();
@@ -163,11 +173,11 @@ UNKNOWN_TOKEN       .
                                     charIndex = input();
                                     if(charIndex == '*'){
                                        *(fixedToken + index) = charIndex;
-                                       commentCloseFlag++; 
-                                       index++;
-                                       charIndex = input();
-                                       continue;
+                                        commentCloseFlag++; 
+                                        charIndex = input();
+                                        index++;
                                     }
+                                        continue;
                                 }
 
                                 if(charIndex == '*'){
@@ -181,25 +191,26 @@ UNKNOWN_TOKEN       .
                                         charIndex = input();
                                         if(commentCloseFlag == 0){
                                             break;
-                                        }else{
-                                            continue;
                                         }
+                                        continue;
+                                        
                                     }
                                 }
 
                                 *(fixedToken + index) = charIndex;
 
                                 charIndex = input();
-                                index++;        
+                                index++;     
                             }
 
                             if(commentCloseFlag != 0){
-                                printf("In line %d ERROR: Comment never closed\n",line);
+                                printf("\033[31mIn line %d ERROR: Comment never closed!\033[0m\n",line);
                                 return -1;
                             }
-                            
+
                             
 }
+{SLASH_COMMENT}      {}
 
 {LEFT_BRACE}          {return LEFT_BRACE;}
 {RIGHT_BRACE}         {return RIGHT_BRACE;}
@@ -214,13 +225,12 @@ UNKNOWN_TOKEN       .
 {WHILE}               {return WHILE;}
 {FOR}                 {return FOR;}
 {FUNCTION}            {yylval.strVal = strdup(yytext);
-                       return FUNCTION;
-                      }
+                        return FUNCTION;
+                        }
 {RETURN}              {return RETURN;}
 {BREAK}               {return BREAK;}
 {CONTINUE}            {return CONTINUE;}
-{AND}                 {return AND;}
-{OR}                  {return OR;}
+
 {LOCAL_KEYWORD}       {return LOCAL_KEYWORD;}
 {TRUE}                {return TRUE;}
 {FALSE}               {return FALSE;}
@@ -234,7 +244,9 @@ UNKNOWN_TOKEN       .
 {OPERATOR_ASSIGN}     {return OPERATOR_ASSIGN;}
 {OPERATOR_MOD}        {return OPERATOR_MOD;}
 {OPERATOR_EQ}         {return OPERATOR_EQ;}
-{OPERATOR_NOT}        {return OPERATOR_NOT;}
+{NOT}        	      {return NOT;}
+{AND}		      {return AND;}
+{OR}		      {return OR;}
 {OPERATOR_PP}         {return OPERATOR_PP;}
 {OPERATOR_MM}         {return OPERATOR_MM;}
 {OPERATOR_GRT}        {return OPERATOR_GRT;}
@@ -242,9 +254,9 @@ UNKNOWN_TOKEN       .
 {OPERATOR_GRE}        {return OPERATOR_GRE;}
 {OPERATOR_LEE}        {return OPERATOR_LEE;}
 {INTEGER}             {yylval.intVal = atoi(yytext);
-                       return INTEGER;}
+                        return INTEGER;}
 {REAL}                {yylval.doubleVal = strtod(yytext, &useless_ptr);
-                       return REAL;}
+                        return REAL;}
 {LEFT_BRACKET}        {return LEFT_BRACKET;}
 {RIGHT_BRACKET}       {return RIGHT_BRACKET;}
 {LEFT_PARENTHESIS}    {return LEFT_PARENTHESIS;}
@@ -256,13 +268,25 @@ UNKNOWN_TOKEN       .
             int backSlashCounter = 0;
             int line = yylineno;
             int closingQuoteFlag = 1;
-            char * fixedString =(char*) malloc(1024*sizeof(char*));
+            int size = 1024;
+            char* tmp;
+            char* fixedString =(char*) malloc(1024*sizeof(char*));
 
             *(fixedString + index) = charIndex;
             index++;
 
             charIndex = input();
-            while(charIndex != EOF){
+            while(charIndex != EOF && charIndex != '\0'){
+                
+                if(index >= size) {
+                    tmp = (char*)realloc(fixedString, size*2*sizeof(char));
+                    size = size * 2;
+                    if(tmp == NULL) {
+                        printf("\033[31mRealloc Failed\033[0m\n");
+                        return -1;
+                    }
+                    fixedString = tmp;
+                }
 
                 if(charIndex == '\\'){
                     charIndex = input();
@@ -298,9 +322,10 @@ UNKNOWN_TOKEN       .
                         continue;
                     }
                     else {
-                        printf("In line %d ERROR: Invalid escape sequence\n",line);
+                        printf("\033[31mIn line %d ERROR: Invalid escape sequence\033[0m\n",line);
                         return -1;
-                    }    
+                    }
+                    
                 }
 
 
@@ -318,25 +343,24 @@ UNKNOWN_TOKEN       .
                 charIndex = input();
             }
 
-
             if(backSlashCounter % 2 != 0){
-                printf("In line %d ERROR: Invalid backslash escape sequence\n",line);
+                printf("\033[31mIn line %d ERROR: Invalid backslash escape sequence\033[0m\n",line);
                 return -1;
             }
 
-            if(closingQuoteFlag == 0){
-                yylval.strVal = strdup(fixedString);
-                return STRING;
-            }
-            else{
-                printf("In line %d ERROR: Closing '\"' expected\n", line);
+            if(closingQuoteFlag != 0){
+                printf("\033[31mIn line %d ERROR: Closing \" expected\033[0m\n",line);
                 return -1;
             }
+            
+            yylval.strVal = strdup(fixedString);
+            return STRING;
 
 }
 
+
 {ID}    {yylval.strVal = strdup(yytext);
-         return ID;}
+            return ID;}
 
 %%
 

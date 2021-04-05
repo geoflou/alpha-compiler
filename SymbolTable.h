@@ -43,13 +43,15 @@ void initTable(void);
 
 void insertLibraryFunctions();
 
+void insertFunction(char* name);
+
 int hashForBucket(char *symbolName);
 
 int hashForScope(int symbolScope);
 
 void insertEntry(SymbolTableEntry *symbol);
 
-SymbolTableEntry *lookupEverything(char *name);
+SymbolTableEntry *lookupEverything(char *name, int scope);
 
 SymbolTableEntry *lookupScope(char *name, int scope);
 
@@ -61,6 +63,8 @@ void hideFromBuckets(int scope);
 
 void printEntries(void);
 
+void printScope(SymbolTableEntry* scopeHead);
+
 char *getEntryType(SymbolTableEntry *symbol);
 
 char *getEntryName(SymbolTableEntry *symbol);
@@ -69,4 +73,6 @@ int getEntryLine(SymbolTableEntry *symbol);
 
 int getEntryScope(SymbolTableEntry *symbol);
 
-void comparelibfunc(char *name);
+int comparelibfunc(char *name);
+
+SymbolTableEntry *lookupforCalls(char *name, int scope);

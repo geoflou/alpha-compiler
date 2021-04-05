@@ -69,65 +69,65 @@ void insertEntry(SymbolTableEntry *symbol){
         SymbolTable[bucket] -> next = symbol;
     }    
     else{
-        symbolIndex = SymbolTable[bucket] -> next;
-        while(symbolIndex -> next != NULL){
-            symbolIndex = symbolIndex -> next;
-        }
-
-        symbolIndex -> next = symbol;
+        symbol -> next = SymbolTable[bucket] -> next;
+        SymbolTable[bucket] -> next = symbol;
     }
 
     if(SymbolTable[scopeLink] -> next == NULL){
         SymbolTable[scopeLink] -> next = scopeLinkSymbol;
     }
     else{
-        symbolIndex = SymbolTable[scopeLink] -> next;
-        while(symbolIndex -> next != NULL){
-            symbolIndex = symbolIndex -> next;
-        }
-
-        symbolIndex -> next = scopeLinkSymbol;
+        scopeLinkSymbol -> next = SymbolTable[scopeLink] -> next;
+        SymbolTable[scopeLink] -> next = scopeLinkSymbol;
     }
 
     return;
 }
 
-
-SymbolTableEntry *lookupEverything(char *name){
-    int bucket;
+SymbolTableEntry *lookupEverything(char *name, int scope){
     SymbolTableEntry *symbolIndex;
-    Variable *varTMP;
-    Function *funcTMP;
+    int i = 0;
 
     assert(name != NULL);
-    bucket = hashForBucket(name);
-    if(SymbolTable[bucket] == NULL){
-        return NULL;
-    }
 
-    symbolIndex = SymbolTable[bucket];
-
-    while(symbolIndex != NULL){
+    for(i = scope; i >= 0;i--) {
+        symbolIndex = lookupScope(name, i);
         
-        if(symbolIndex -> varVal != NULL){
-            varTMP = symbolIndex -> varVal;
-            if(strcmp(varTMP -> name, name) == 0){
-                return symbolIndex;
-            }
+        if(symbolIndex == NULL) {
+            continue;
         }
 
-        if(symbolIndex -> funcVal != NULL){
-            funcTMP = symbolIndex -> funcVal;
-            if(strcmp(funcTMP -> name, name) == 0){
-                return symbolIndex;
-            }
+        if(symbolIndex -> isActive == 1) {
+            return  symbolIndex; 
         }
-        symbolIndex = symbolIndex -> next;
+
     }
 
     return NULL;
 }
 
+SymbolTableEntry *lookupforCalls(char *name, int scope){
+    SymbolTableEntry *symbolIndex;
+    int i = 0;
+
+    assert(name != NULL);
+    for(i = scope; i >= 0;i--) {
+        symbolIndex = lookupScope(name, i);
+        
+        if(symbolIndex == NULL) {
+            continue;
+        }
+
+        if(symbolIndex -> isActive == 1 && symbolIndex -> type == USERFUNC) {
+            return  symbolIndex; 
+        }else if (symbolIndex -> isActive == 1 && i == scope){
+            return NULL;
+        }
+
+    }
+
+    return NULL;
+}
 
 SymbolTableEntry *lookupScope(char *name, int scope){
     int bucket;
@@ -236,24 +236,33 @@ void printEntries(void){
     Function *funcTMP; 
 
     for(i = 0;i < 10;i++){
-       
+
         printf("---------------  Scope #%d  ---------------\n", i);
         symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
-       
+
         if(symbolIndex == NULL){
-           continue;
+            continue;
         }
+
         symbolIndex = symbolIndex -> next;
-        while(symbolIndex != NULL){
-            printf("\"%s\"  [%s]    (line %d)   (scope %d)\n",getEntryName(symbolIndex),
-                getEntryType(symbolIndex), getEntryLine(symbolIndex), getEntryScope(symbolIndex));
-            symbolIndex = symbolIndex -> next;
-        }
+        printScope(symbolIndex);
 
     }
     return;
 }
 
+void printScope(SymbolTableEntry* scopeHead) {
+    if(scopeHead == NULL) {
+        return;
+    }
+
+    printScope(scopeHead -> next);
+
+    printf("\"%s\"  [%s]    (line %d)   (scope %d)\n",getEntryName(scopeHead),
+                getEntryType(scopeHead), getEntryLine(scopeHead), getEntryScope(scopeHead));
+
+    return;
+}
 
 char *getEntryType(SymbolTableEntry *symbol){
     switch (symbol -> type)
@@ -334,143 +343,35 @@ int getEntryScope(SymbolTableEntry *symbol){
 
 
 void insertLibraryFunctions(void){
-    SymbolTableEntry *print = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *printFunc = (Function *)malloc(sizeof(Function));
-        print -> isActive = 1;
-        printFunc -> name = "print";
-        printFunc -> scope = 0;
-        printFunc -> line = 0;
-        print -> funcVal = printFunc;
-        print -> type = LIBFUNC;
-        print -> next = NULL;
-        insertEntry(print);
-        lookupEverything(print->funcVal->name);
+    insertFunction("print");
+    insertFunction("input");
+    insertFunction("objectmemberkeys");
+    insertFunction("objectcopy");
+    insertFunction("totalarguments");
+    insertFunction("argument");
+	insertFunction("typeof");
+	insertFunction("strtonum");
+	insertFunction("sqrt");
+	insertFunction("cos");
+	insertFunction("sin");
 
-		SymbolTableEntry *input= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *inputFunc = (Function*)malloc(sizeof(Function));
-        input -> isActive = 1;
-        inputFunc -> name = "input";
-        inputFunc -> scope = 0;
-        inputFunc -> line = 0;
-        input -> funcVal = inputFunc;
-        input -> type = LIBFUNC;
-        input -> next = NULL;
-        insertEntry(input);
-
-		SymbolTableEntry *objectmemberkeys= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *objectmemberkeysFunc = (Function*)malloc(sizeof(Function));
-        objectmemberkeys -> isActive = 1;
-        objectmemberkeysFunc -> name = "objectmemberkeys";
-        objectmemberkeysFunc -> scope = 0;
-        objectmemberkeysFunc -> line = 0;
-        objectmemberkeys -> funcVal = objectmemberkeysFunc;
-        objectmemberkeys -> type = LIBFUNC;
-        objectmemberkeys -> next = NULL;
-        insertEntry(objectmemberkeys);
-
-		SymbolTableEntry *objecttotalmembers= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *objecttotalmembersFunc = (Function*)malloc(sizeof(Function));
-        objecttotalmembers -> isActive = 1;
-        objecttotalmembersFunc -> name = "objecttotalmembers";
-        objecttotalmembersFunc -> scope = 0;
-        objecttotalmembersFunc -> line = 0;
-        objecttotalmembers -> funcVal = objecttotalmembersFunc;
-        objecttotalmembers -> type = LIBFUNC;
-        objecttotalmembers -> next = NULL;
-        insertEntry(objecttotalmembers);
-
-		SymbolTableEntry *objectcopy= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *objectcopyFunc = (Function*)malloc(sizeof(Function));
-        objectcopy -> isActive = 1;
-        objectcopyFunc -> name = "objectcopy";
-        objectcopyFunc -> scope = 0;
-        objectcopyFunc -> line = 0;
-        objectcopy -> funcVal = objectcopyFunc;
-        objectcopy -> type = LIBFUNC;
-        objectcopy -> next = NULL;
-        insertEntry(objectcopy);
-		
-		SymbolTableEntry *totalarguments= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *totalargumentsFunc = (Function*)malloc(sizeof(Function));
-        totalarguments -> isActive = 1;
-        totalargumentsFunc -> name = "totalarguments";
-        totalargumentsFunc -> scope = 0;
-        totalargumentsFunc -> line = 0;
-        totalarguments -> funcVal = totalargumentsFunc;
-        totalarguments -> type = LIBFUNC;
-        totalarguments -> next = NULL;
-        insertEntry(totalarguments);
-		
-		SymbolTableEntry *argument= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *argumentFunc = (Function*)malloc(sizeof(Function));
-        argument -> isActive = 1;
-        argumentFunc -> name = "argument";
-        argumentFunc -> scope = 0;
-        argumentFunc -> line = 0;
-        argument -> funcVal = argumentFunc;
-        argument -> type = LIBFUNC;
-        argument -> next = NULL;
-        insertEntry(argument);
-		
-		SymbolTableEntry *Typeof= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *TypeofFunc = (Function*)malloc(sizeof(Function));
-        Typeof -> isActive = 1;
-        TypeofFunc -> name = "typeof";
-        TypeofFunc -> scope = 0;
-        TypeofFunc -> line = 0;
-        Typeof -> funcVal = TypeofFunc;
-        Typeof -> type = LIBFUNC;
-        Typeof -> next = NULL;
-        insertEntry(Typeof);
-		
-		SymbolTableEntry *strtonum= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *strtonumFunc =  (Function*)malloc(sizeof(Function));
-        strtonum -> isActive = 1;
-        strtonumFunc -> name = "strtonum";
-        strtonumFunc -> scope = 0;
-        strtonumFunc -> line = 0;
-        strtonum -> funcVal = strtonumFunc;
-        strtonum -> type = LIBFUNC;
-        strtonum -> next = NULL;
-        insertEntry(strtonum);
-		
-		SymbolTableEntry *sqrt= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *sqrtFunc = (Function*)malloc(sizeof(Function));
-        sqrt -> isActive = 1;
-        sqrtFunc -> name = "sqrt";
-        sqrtFunc -> scope = 0;
-        sqrtFunc -> line = 0;
-        sqrt -> funcVal = sqrtFunc;
-        sqrt -> type = LIBFUNC;
-        sqrt -> next = NULL;
-        insertEntry(sqrt);
-		
-		SymbolTableEntry *cos= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *cosFunc =  (Function*)malloc(sizeof(Function));
-        cos -> isActive = 1;
-        cosFunc -> name = "cos";
-        cosFunc -> scope = 0;
-        cosFunc -> line = 0;
-        cos -> funcVal = cosFunc;
-        cos -> type = LIBFUNC;
-        cos -> next = NULL;
-        insertEntry(cos);
-		
-		SymbolTableEntry *sin= (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
-        Function *sinFunc = (Function*)malloc(sizeof(Function));
-        sin -> isActive = 1;
-        sinFunc -> name = "sin";
-        sinFunc -> scope = 0;
-        sinFunc -> line = 0;
-        sin -> funcVal = sinFunc;
-        sin -> type = LIBFUNC;
-        sin -> next = NULL;
-        insertEntry(sin);
-
-        return;
+    return;
 }
 
-void comparelibfunc(char *name){
+void insertFunction(char* name) {
+    SymbolTableEntry *entry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
+    Function *func = (Function *)malloc(sizeof(Function));
+    entry -> isActive = 1;
+    func -> name = name;
+    func -> scope = 0;
+    func -> line = 0;
+    entry -> funcVal = func;
+    entry -> type = LIBFUNC;
+    entry -> next = NULL;
+    insertEntry(entry);
+}
+
+int comparelibfunc(char *name){
         
     char *print = malloc(sizeof(char*)*10);
     char *input = malloc(sizeof(char*)*10);
@@ -500,75 +401,63 @@ void comparelibfunc(char *name){
 
         i=strcmp(name,print);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,input);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
         
         i=strcmp(name,objectmemberkeys);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,objecttotalmembers);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,objectcopy);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,totalarguments);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,argument);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,typeof1);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,strtonum);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,sqrt);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,cos);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
         i=strcmp(name,sin);
         if(i==0){
-            printf("Error, cannot use library function as name variable\n");
-            return;
+            return -1;
         }
 
-    return;
+    return 0;
 }
