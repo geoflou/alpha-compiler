@@ -1,5 +1,14 @@
 #include "utilities.h"
 
+quad* quads = (quad *) 0;
+unsigned total = 0;
+unsigned currQuad = 0;
+
+unsigned programVarOffset = 0;
+unsigned functionLocalOffset = 0;
+unsigned formalArgOffset = 0;
+unsigned scopeSpaceCounter = 1; 
+
 void insertID(char* name, int scope, int line) {
     SymbolTableEntry *temp;
     SymbolTableEntry *new_entry;
@@ -96,3 +105,58 @@ void insertFormal(char* name, int scope, int line) {
     insertEntry(new_entry);
     return;
 }
+
+unsigned currScopeOffset(void) {
+    if(scopeSpaceCounter == 1) {
+        return programVarOffset;
+    }
+
+    if(scopeSpaceCounter % 2 == 0) {
+        return formalArgOffset;
+    }
+
+    return functionLocalOffset;
+}
+
+void enterScopeSpace(void) {
+    ++scopeSpaceCounter;
+    return;
+}
+
+void exitScopeSpace(void){
+    assert(scopeSpaceCounter > 1);
+    --scopeSpaceCounter;
+    return;
+}
+
+
+void expand(void) {
+    assert(total == currQuad);
+    quad* p = (quad*) malloc(NEW_SIZE);
+    if(quads) {
+        memcpy(p, quads, CURR_SIZE);
+        free(quads);
+    }
+
+    quads = p;
+    total += EXPAND_SIZE;
+
+    return;
+}
+
+void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, unsigned label, unsigned line) {
+    if(currQuad == total) {
+        expand();
+    }
+
+    quad* p = quads + currQuad++;
+    p -> op = op;
+    p -> arg1 = arg1;
+    p -> arg2 = arg2;
+    p -> result = result;
+    p -> label = label;
+    p -> line - line;
+
+    return;
+}
+
