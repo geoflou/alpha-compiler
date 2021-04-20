@@ -29,21 +29,31 @@ enum iopcode{
     jump
 };
 
-enum scopespace_t {
-    programVar,
-    functionLocal,
-    formalArg
-};
+enum expr_t {
+    var_e,
+    tableitem_e,
 
-enum symbol_t {
-    var_s,
-    programFunc_s,
-    libraryFunc_s
+    programfunc_e,
+    libraryfunc_e,
+
+    arithexpr_e,
+    boolexpr_e,
+    assignexpr_e,
+    newtable_e,
+
+    constnum_e,
+    constbool_e,
+    conststring_e
 };
 
 typedef struct expr{
-    int x;
-    int y;
+    enum expr_t exprType;
+    SymbolTableEntry* symbol;
+    struct expr* index;
+    double numConst;
+    char* strConst;
+    unsigned char boolConst;
+    struct expr* next;
 } Expr;
 
 typedef struct quad {
@@ -74,3 +84,15 @@ unsigned currScopeOffset(void);
 void enterScopeSpace(void);
 
 void exitScopeSpace(void);
+
+Expr* lvalue_expr(SymbolTableEntry* sym, int scope, int line);
+
+Expr* newTemp(int scope, int line);
+
+Expr* newExpr(enum expr_t type);
+
+Expr* newExpr_conststring(char* s);
+
+Expr* newExpr_constbool(unsigned char b);
+
+Expr* newExpr_constnum(double s);

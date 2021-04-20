@@ -7,7 +7,9 @@ unsigned currQuad = 0;
 unsigned programVarOffset = 0;
 unsigned functionLocalOffset = 0;
 unsigned formalArgOffset = 0;
-unsigned scopeSpaceCounter = 1; 
+unsigned scopeSpaceCounter = 1;
+
+unsigned tempCounter = 0;
 
 void insertID(char* name, int scope, int line) {
     SymbolTableEntry *temp;
@@ -160,3 +162,86 @@ void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, unsigned label,
     return;
 }
 
+char* newTempName(void) {
+    char* name = sprintf(name, "_t%d", tempCounter);
+    tempCounter++;
+    return name;
+}
+
+Expr* newTemp(int scope, int line) {
+    char *name = newTempName();
+    Variable *newVar;
+    SymbolTableEntry *sym = lookupScope(name, scope);
+    
+    if (sym != NULL) {
+        return sym;
+    }
+    
+    
+    sym = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
+    newVar = (Variable *)malloc(sizeof(Variable));
+    
+    newVar->line = line;
+    newVar->name = name;
+    newVar->scope = scope;
+    
+    sym -> varVal = newVar;
+    scope == 0 ? (sym -> type = GLOBAL) : (sym -> type = LOCAL);
+    sym -> isActive = 1;
+    sym -> funcVal = NULL;
+    sym -> next = NULL;
+    
+    insertEntry(sym);
+    
+    return sym;
+}
+
+Expr* lvalue_expr(SymbolTableEntry* sym, int scope, int line) {
+    assert(sym != NULL);
+    Expr* e = (Expr*)malloc(sizeof(Expr));
+    memset(e, 0, sizeof(Expr)); //possible segfault 
+
+    e -> next = (Expr*) 0;
+    e -> symbol = sym;
+
+    if(sym -> type == USERFUNC) {
+        e -> exprType = programfunc_e;
+        return e;
+    }
+
+    if(sym -> type == LIBFUNC) {
+        e -> exprType = libraryfunc_e;
+        return e;
+    }
+
+    if(sym -> type == GLOBAL ||  sym -> type == LOCAL || sym -> type == FORMAL) {
+        e -> exprType = var_e;
+        return e;
+    }
+
+    assert(0);
+}
+
+Expr* newExpr(enum expr_t type) {
+    Expr * newEx = (Expr *) malloc(sizeof(Expr));
+    newEx-> exprType = type;
+    return newEx;
+}
+
+Expr* newExpr_conststring(char* s) {
+    Expr* e = newExpr(conststring_e);
+    e-> strConst = strdup(s);
+    return e;
+}
+
+Expr* newExpr_constbool(unsigned char b) {
+    Expr* e = newExpr(constbool_e);
+    e->boolConst = b;
+    return e;
+}
+
+Expr* newExpr_constnum(double s) {
+    Expr* e = newExpr(constnum_e);
+    e -> numConst = s;
+    return e;
+}
