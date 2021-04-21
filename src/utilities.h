@@ -87,7 +87,7 @@ void exitScopeSpace(void);
 
 Expr* lvalue_expr(SymbolTableEntry* sym, int scope, int line);
 
-Expr* newTemp(int scope, int line);
+SymbolTableEntry* newTemp(int scope, int line);
 
 Expr* newExpr(enum expr_t type);
 

@@ -28,6 +28,7 @@
     int intVal;
     char *strVal;
     double doubleVal;
+    struct expr *exp;
 }
 
 
@@ -39,6 +40,10 @@
 %token <intVal> INTEGER
 %token <doubleVal> REAL
 %token <strVal> STRING
+
+%type <exp> const
+%type <exp> lvalue
+%type <exp> expr
 
 %token IF
 %token ELSE
@@ -109,20 +114,62 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
 
-expr: assignexpr    {printf("assignexpr -> expr\n");}
-    | expr OPERATOR_PLUS expr   {printf("expr + expr -> expr\n");}
-    | expr OPERATOR_MINUS expr  {printf("expr - expr -> expr\n");}
-    | expr OPERATOR_MOD expr    {printf("expr % expr -> expr\n");}
-    | expr OPERATOR_DIV expr    {printf("expr / expr -> expr\n");}
-    | expr OPERATOR_MUL expr    {printf("expr * expr -> expr\n");}
+expr: assignexpr    {
+        printf("assignexpr -> expr\n");
+    }
+    | expr OPERATOR_PLUS expr   {
+        printf("expr + expr -> expr\n");
+        $$ = newExpr(arithexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(add, $1, $3, $$, NULL, yylineno);
+        printf("\nadd %0.1f + %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
+    | expr OPERATOR_MINUS expr  {
+        printf("expr - expr -> expr\n");
+        $$ = newExpr(arithexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(sub, $1, $3, $$, NULL, yylineno);
+        printf("\nsub %0.1f - %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
+    | expr OPERATOR_MOD expr    {
+        printf("expr %% expr -> expr\n");$$ = newExpr(arithexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(mod, $1, $3, $$, NULL, yylineno);
+        printf("\nmod %0.1f mod %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
+    | expr OPERATOR_DIV expr    {
+        printf("expr / expr -> expr\n");$$ = newExpr(arithexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(divide, $1, $3, $$, NULL, yylineno);
+        printf("\ndivide %0.1f / %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
+    | expr OPERATOR_MUL expr    {
+        printf("expr * expr -> expr\n");
+        $$ = newExpr(arithexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(mul, $1, $3, $$, NULL, yylineno);
+        printf("\nmul %0.1f * %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
     | expr OPERATOR_GRT expr    {printf("expr > expr -> expr\n");}
     | expr OPERATOR_GRE expr    {printf("expr >= expr -> expr\n");}
     | expr OPERATOR_LES expr    {printf("expr < expr -> expr\n");}
     | expr OPERATOR_LEE expr    {printf("expr <= expr -> expr\n");}
     | expr OPERATOR_EQ expr 	{printf("expr == expr -> expr\n");}
     | expr OPERATOR_NEQ expr    {printf("expr != expr -> expr\n");}
-    | expr AND expr    		{printf("expr and expr -> expr\n");}
-    | expr OR expr 		{printf("expr or expr -> expr\n");}
+    | expr AND expr    		{
+        printf("expr and expr -> expr\n");
+        $$ = newExpr(boolexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(and, $1, $3, $$, NULL, yylineno);
+        printf("\nand %0.1f and %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
+    | expr OR expr 		{
+        printf("expr or expr -> expr\n");
+        $$ = newExpr(boolexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
+        emit(or, $1, $3, $$, NULL, yylineno);
+        printf("\nor %0.1f or %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+    }
     |term   {printf("term -> expr\n");}  
     ;
 
@@ -220,18 +267,20 @@ lvalue: ID  {
         }
     }
     insertID(yylval.strVal, scope, yylineno);
-
+    $$ = $1;
     }
     |LOCAL_KEYWORD ID   {
         printf("local ID -> lvalue\n");
         insertLocalID(yylval.strVal, scope, yylineno);
+        $$ = $2;
     }
     |DOUBLE_COLON ID    {  
         printf("::ID -> lvalue\n");
         if(lookupScope(yylval.strVal, 0) == NULL) {
             printf("\033[31mERROR: Global variable \"%s\" cannot be found!\033[0m", yylval.strVal);
             yyerror("\t");
-        }   
+        }
+        $$ = $2;   
     }
     |member {
         printf("member -> lvalue\n");
@@ -435,9 +484,9 @@ funcdef: FUNCTION ID {
     }
     ;
 
-const: REAL
-    |INTEGER
-    |STRING 
+const: REAL {$$ = newExpr_constnum(yylval.doubleVal);}
+    |INTEGER {$$ = newExpr_constnum(yylval.intVal);}
+    |STRING  {$$ = newExpr_conststring(yylval.strVal);}
     |NIL
     |TRUE
     |FALSE

@@ -163,12 +163,13 @@ void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, unsigned label,
 }
 
 char* newTempName(void) {
-    char* name = sprintf(name, "_t%d", tempCounter);
+    char* name = (char*)malloc(sizeof(char)*10);
+    sprintf(name, "_t%d", tempCounter);
     tempCounter++;
     return name;
 }
 
-Expr* newTemp(int scope, int line) {
+SymbolTableEntry* newTemp(int scope, int line) {
     char *name = newTempName();
     Variable *newVar;
     SymbolTableEntry *sym = lookupScope(name, scope);
@@ -176,7 +177,6 @@ Expr* newTemp(int scope, int line) {
     if (sym != NULL) {
         return sym;
     }
-    
     
     sym = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
     newVar = (Variable *)malloc(sizeof(Variable));
