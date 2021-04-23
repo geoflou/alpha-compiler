@@ -81,7 +81,13 @@ void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, unsigned label,
 
 unsigned currScopeOffset(void);
 
+void incScopeOffset(void);
+
+void resetScopeOffset(void);
+
 void enterScopeSpace(void);
+
+void resetScopeOffset(void);
 
 void exitScopeSpace(void);
 
@@ -96,3 +102,13 @@ Expr* newExpr_conststring(char* s);
 Expr* newExpr_constbool(unsigned char b);
 
 Expr* newExpr_constnum(double s);
+
+void printQuads(void);
+
+char* getOpCode(quad* q);
+
+char* getResult(Expr* e);
+
+char* getArg(Expr* e);
+
+unsigned int getcurrQuad(void);

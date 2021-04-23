@@ -44,6 +44,7 @@
 %type <exp> const
 %type <exp> lvalue
 %type <exp> expr
+%type <exp> assignexpr
 
 %token IF
 %token ELSE
@@ -115,39 +116,44 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     ;
 
 expr: assignexpr    {
+    
         printf("assignexpr -> expr\n");
+        $$ = newExpr(assignexpr_e);
+        $$->symbol = newTemp(scope,yylineno);
+        emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
+        printf("\nASSIGN %s %s \n\n", getEntryName($$->symbol), getEntryName($1->symbol));
     }
     | expr OPERATOR_PLUS expr   {
         printf("expr + expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(add, $1, $3, $$, NULL, yylineno);
-        printf("\nadd %0.1f + %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
+        emit(add, $1, $3, $$, getcurrQuad() + 1, yylineno);
+        printf("\nadd %s + %0.1f = %s\n\n", getEntryName($1 -> symbol), $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MINUS expr  {
         printf("expr - expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(sub, $1, $3, $$, NULL, yylineno);
+        emit(sub, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\nsub %0.1f - %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MOD expr    {
         printf("expr %% expr -> expr\n");$$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(mod, $1, $3, $$, NULL, yylineno);
+        emit(mod, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\nmod %0.1f mod %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_DIV expr    {
         printf("expr / expr -> expr\n");$$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(divide, $1, $3, $$, NULL, yylineno);
+        emit(divide, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\ndivide %0.1f / %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MUL expr    {
         printf("expr * expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(mul, $1, $3, $$, NULL, yylineno);
+        emit(mul, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\nmul %0.1f * %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_GRT expr    {printf("expr > expr -> expr\n");}
@@ -160,14 +166,14 @@ expr: assignexpr    {
         printf("expr and expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(and, $1, $3, $$, NULL, yylineno);
+        emit(and, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\nand %0.1f and %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OR expr 		{
         printf("expr or expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
-        emit(or, $1, $3, $$, NULL, yylineno);
+        emit(or, $1, $3, $$, getcurrQuad() + 1, yylineno);
         printf("\nor %0.1f or %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     |term   {printf("term -> expr\n");}  
@@ -236,7 +242,10 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
-            
+            $$ = newExpr(assignexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+            emit(assign, $4, NULL, $1,getcurrQuad() + 1,yylineno);
+            printf("\nASSIGN %s %0.1f \n\n", getEntryName($1->symbol), $4->numConst);
         }
     | call OPERATOR_ASSIGN expr {
         yyerror("\033[31mERROR: function call cannot be an lvalue\033[0m\t");
@@ -267,20 +276,32 @@ lvalue: ID  {
         }
     }
     insertID(yylval.strVal, scope, yylineno);
-    $$ = $1;
+
+
+    temp = lookupEverything(yylval.strVal, scope);
+    assert(temp!=NULL);
+    $$ = lvalue_expr(temp, scope, yylineno);
+  
     }
     |LOCAL_KEYWORD ID   {
         printf("local ID -> lvalue\n");
+        SymbolTableEntry *temp;
         insertLocalID(yylval.strVal, scope, yylineno);
-        $$ = $2;
+        temp = lookupScope(yylval.strVal, scope);
+        assert(temp!=NULL);
+        $$ = lvalue_expr(temp, scope, yylineno);
     }
     |DOUBLE_COLON ID    {  
         printf("::ID -> lvalue\n");
+        SymbolTableEntry *temp;
+        temp = lookupScope(yylval.strVal, 0);
         if(lookupScope(yylval.strVal, 0) == NULL) {
             printf("\033[31mERROR: Global variable \"%s\" cannot be found!\033[0m", yylval.strVal);
             yyerror("\t");
         }
-        $$ = $2;   
+        if(temp!=NULL){
+            $$ = lvalue_expr(temp, scope, yylineno);
+        }
     }
     |member {
         printf("member -> lvalue\n");
@@ -358,8 +379,10 @@ funcdef: FUNCTION ID {
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
+        enterScopeSpace();
     }
     LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS  {
+        enterScopeSpace();
         SymbolTableEntry *temp;
         temp = lookupScope(temp_func -> name, temp_func -> scope);
 
@@ -412,6 +435,8 @@ funcdef: FUNCTION ID {
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
+        exitScopeSpace();
+        exitScopeSpace();
     }
     |FUNCTION {
         funcFlag++;
@@ -422,8 +447,10 @@ funcdef: FUNCTION ID {
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         temp_func -> name = fname;
+        enterScopeSpace();
         
     }LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS {
+        enterScopeSpace();
         SymbolTableEntry *temp;
         temp = lookupScope(temp_func -> name, temp_func -> scope);
 
@@ -481,6 +508,8 @@ funcdef: FUNCTION ID {
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
+        exitScopeSpace();
+        exitScopeSpace();
     }
     ;
 
@@ -566,7 +595,9 @@ int main(int argc, char* argv[]){
 
     yyparse();
 
-    printEntries();
+    //printEntries();
+
+    printQuads();
 
     return 0;
 }

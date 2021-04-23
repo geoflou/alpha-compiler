@@ -36,6 +36,7 @@ typedef struct SymbolTableEntry{
     Variable *varVal;
     Function *funcVal;
     enum SymbolType type;
+    int offset;
     struct SymbolTableEntry *next;
 } SymbolTableEntry;
 

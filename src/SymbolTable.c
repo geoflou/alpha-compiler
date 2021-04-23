@@ -56,6 +56,7 @@ void insertEntry(SymbolTableEntry *symbol){
     scopeLinkSymbol -> isActive = symbol ->isActive;
     scopeLinkSymbol -> varVal = symbol -> varVal;
     scopeLinkSymbol -> funcVal = symbol -> funcVal;
+    scopeLinkSymbol -> offset = symbol -> offset;
     scopeLinkSymbol -> next = NULL;
     scopeLinkSymbol -> type = symbol -> type;
 
