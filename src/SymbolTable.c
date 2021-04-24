@@ -238,7 +238,6 @@ void printEntries(void){
 
     for(i = 0;i < 10;i++){
 
-        printf("---------------  Scope #%d  ---------------\n", i);
         symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
 
         if(symbolIndex == NULL){
@@ -246,6 +245,8 @@ void printEntries(void){
         }
 
         symbolIndex = symbolIndex -> next;
+        
+        printf("---------------  Scope #%d  ---------------\n", i);
         printScope(symbolIndex);
 
     }

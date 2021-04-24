@@ -689,9 +689,9 @@ int main(int argc, char* argv[]){
 
     yyparse();
 
-    //printEntries();
+    printEntries();
 
-    printQuads();
+    //printQuads();
 
     return 0;
 }
