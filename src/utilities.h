@@ -112,3 +112,7 @@ char* getResult(Expr* e);
 char* getArg(Expr* e);
 
 unsigned int getcurrQuad(void);
+
+Expr * emit_ifTableItem(Expr* e, int scope, int line);
+
+Expr * member_item(Expr* e, char * name, int scope, int line); 

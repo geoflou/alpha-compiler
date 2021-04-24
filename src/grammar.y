@@ -15,6 +15,8 @@
 
     char* currFunc;
 
+    Expr* exprStack = (Expr *) 0;
+
     Function* temp_func;
     int arg_index = 0;
 
@@ -45,6 +47,11 @@
 %type <exp> lvalue
 %type <exp> expr
 %type <exp> assignexpr
+%type <exp> primary
+%type <exp> member
+%type <exp> objectdef
+%type <exp> indexed
+%type <exp> indexedelem
 
 %token IF
 %token ELSE
@@ -115,46 +122,34 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
 
-expr: assignexpr    {
-    
-        printf("assignexpr -> expr\n");
-        $$ = newExpr(assignexpr_e);
-        $$->symbol = newTemp(scope,yylineno);
-        emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
-        printf("\nASSIGN %s %s \n\n", getEntryName($$->symbol), getEntryName($1->symbol));
-    }
+expr: assignexpr    { printf("assignexpr -> expr\n");}
     | expr OPERATOR_PLUS expr   {
         printf("expr + expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(add, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nadd %s + %0.1f = %s\n\n", getEntryName($1 -> symbol), $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MINUS expr  {
         printf("expr - expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(sub, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nsub %0.1f - %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MOD expr    {
         printf("expr %% expr -> expr\n");$$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(mod, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nmod %0.1f mod %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_DIV expr    {
         printf("expr / expr -> expr\n");$$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(divide, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\ndivide %0.1f / %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_MUL expr    {
         printf("expr * expr -> expr\n");
         $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(mul, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nmul %0.1f * %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OPERATOR_GRT expr    {printf("expr > expr -> expr\n");}
     | expr OPERATOR_GRE expr    {printf("expr >= expr -> expr\n");}
@@ -167,14 +162,12 @@ expr: assignexpr    {
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(and, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nand %0.1f and %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     | expr OR expr 		{
         printf("expr or expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(or, $1, $3, $$, getcurrQuad() + 1, yylineno);
-        printf("\nor %0.1f or %0.1f = %s\n\n", $1 -> numConst, $3 -> numConst, getEntryName($$ -> symbol));
     }
     |term   {printf("term -> expr\n");}  
     ;
@@ -242,17 +235,27 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
-            $$ = newExpr(assignexpr_e);
-            $$ -> symbol = newTemp(scope, yylineno);
-            emit(assign, $4, NULL, $1,getcurrQuad() + 1,yylineno);
-            printf("\nASSIGN %s %0.1f \n\n", getEntryName($1->symbol), $4->numConst);
+
+            if($1->exprType == tableitem_e) {
+                emit(tablesetelem, $1->index, $4, $1, getcurrQuad()+1, yylineno );
+                $$ = emit_ifTableItem($1,scope,yylineno);
+                $$ -> exprType = assignexpr_e;
+            }    
+            else {
+                emit(assign, $4, NULL, $1,getcurrQuad() + 1,yylineno);
+                $$ = newExpr(assignexpr_e);
+                $$->symbol = newTemp(scope,yylineno);
+                emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
+            }
         }
     | call OPERATOR_ASSIGN expr {
         yyerror("\033[31mERROR: function call cannot be an lvalue\033[0m\t");
     }
     ;
 
-primary: lvalue {printf("lvalue -> primary\n");}
+primary: lvalue {printf("lvalue -> primary\n");
+                    $$ = emit_ifTableItem($1, scope, yylineno);
+    }
     |call   {printf("call -> primary\n");}
     |objectdef  {printf("objectdef -> primary\n");}
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {printf("(funcdef) -> primary\n");}
@@ -306,11 +309,22 @@ lvalue: ID  {
     |member {
         printf("member -> lvalue\n");
         memberflag = 1;
+        $$ = $1;
     }
     ;
 
-member: lvalue DOT ID   {printf("lvalue.ID -> mebmer\n");}
-    |lvalue LEFT_BRACE expr RIGHT_BRACE {printf("lvalue[expr] -> member\n");}
+member: lvalue DOT ID   {
+        printf("lvalue.ID -> mebmer\n");
+        $$ = member_item($1, yylval.strVal, scope, yylineno); /*DANGER debug saving time*/
+    }
+    |lvalue LEFT_BRACE expr RIGHT_BRACE 
+    {
+        printf("lvalue[expr] -> member\n");
+        $1 = emit_ifTableItem($1,scope,yylineno);
+        $$ = newExpr(tableitem_e);
+        $$ -> symbol = $1 -> symbol;
+        $$ -> index = $3;
+    }
     |call DOT ID    {printf("call.id -> member\n");}
     |call LEFT_BRACE expr RIGHT_BRACE   {printf("call[expr] -> member\n");}
     ;
@@ -345,20 +359,99 @@ normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
 methodcall: DOUBLE_DOT ID normcall  {printf("..id(elist) -> methodcall\n");}
     ;
 
-elist: expr
-    |expr COMMA elist
+elist: expr {
+        if(exprStack -> next == NULL) {
+            exprStack -> next = $1;
+        }
+        else {
+            $1 -> next = exprStack -> next;
+            exprStack -> next = $1;
+        }
+    }
+    |expr COMMA elist {
+        if(exprStack -> next == NULL) {
+            exprStack -> next = $1;
+        }
+        else {
+            $1 -> next = exprStack -> next;
+            exprStack -> next = $1;
+        }
+    }
     |
     ;
 
-objectdef: LEFT_BRACE elist RIGHT_BRACE {printf("[elist] -> objectdef\n");}
-    |LEFT_BRACE indexed RIGHT_BRACE {printf("[indexed] -> objectdef\n]");}
+objectdef: LEFT_BRACE elist RIGHT_BRACE {
+        printf("[elist] -> objectdef\n");
+        Expr * index;
+        Expr* t = newExpr(newtable_e);
+        int i = 0;
+        t -> symbol = newTemp(scope, yylineno);
+        emit(tablecreate, NULL, NULL, t, getcurrQuad() + 1, yylineno);
+        index = exprStack -> next;
+        while(index != NULL) {
+            emit(tablesetelem, index, newExpr_constnum(i), t, getcurrQuad() + 1, yylineno);
+            i++;
+            index = index -> next;
+        }
+        $$ = t;
+    }
+    |LEFT_BRACE indexed RIGHT_BRACE {
+        printf("[indexed] -> objectdef\n]");
+        Expr* index;
+        Expr *t = newExpr(newtable_e);
+        t -> symbol = newTemp(scope, yylineno);
+        emit(tablecreate, NULL, NULL, t, getcurrQuad() + 1, yylineno);
+        index = exprStack -> next;
+        while(index != NULL) {
+            
+
+            index = index -> next;
+        }
+        
+        $$ = t;
+
+    }
     ;
 
-indexed: indexedelem
-    |indexedelem COMMA indexed
+indexed: indexedelem {
+    if(exprStack -> next == NULL) {
+            exprStack -> next = $1;
+        }
+        else {
+            $1 -> next = exprStack -> next;
+            exprStack -> next = $1;
+        }
+    }
+    |indexedelem COMMA indexed {
+        if(exprStack -> next == NULL) {
+            exprStack -> next = $1;
+        }
+        else {
+            $1 -> next = exprStack -> next;
+            exprStack -> next = $1;
+        }
+    }
     ;
 
-indexedelem: LEFT_BRACKET expr COLON expr RIGHT_BRACKET {printf("{expr : expr} -> indexed elem\n");}
+indexedelem: LEFT_BRACKET expr COLON expr RIGHT_BRACKET {
+        printf("{expr : expr} -> indexed elem\n");
+        //TODO: Create properly the expr
+        Expr* t = newExpr(tableitem_e);
+        t -> index = $2;
+        switch($4 -> exprType) {
+            case constnum_e:
+                t -> numConst = $4 -> numConst;
+                break;
+            case constbool_e:
+                t -> boolConst = $4 -> boolConst;
+                break;
+            case conststring_e:
+                t -> strConst = $4 -> strConst;
+                break;
+            default:
+                assert(0);
+        }    
+    }
     ;
 
 block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
@@ -589,7 +682,8 @@ int main(int argc, char* argv[]){
 
     temp_func = (Function *)malloc(sizeof(Function));
     temp_func -> arguments =(char**)malloc(10*sizeof(char*));
-
+    exprStack = (Expr*)malloc(sizeof(Expr));
+    exprStack -> next = NULL;
 
     initTable();
 

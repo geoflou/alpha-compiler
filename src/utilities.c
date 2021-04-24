@@ -352,13 +352,14 @@ char* getResult(Expr* e){
 char* getArg(Expr* e){
     char * toString = (char*)malloc(sizeof(char)* 100);
         if(e == NULL) {
-        return "\t";
+            return "\t";
         }
         if(e-> exprType == var_e || e-> exprType == programfunc_e || e-> exprType == libraryfunc_e){
             return getEntryName(e->symbol);
         }
         else if (e-> exprType == conststring_e){
-            return e->strConst;
+            sprintf(toString, "\"%s\"", e->strConst);
+            return toString;
         }
         else if (e-> exprType == constnum_e) {
             sprintf(toString, "%0.1f", e->numConst);
@@ -374,6 +375,12 @@ char* getArg(Expr* e){
         else if(e -> exprType == arithexpr_e || e -> exprType == assignexpr_e) {
             return getEntryName(e -> symbol);
         }
+        else if (e-> exprType == tableitem_e) {
+            return getEntryName(e -> symbol);
+        }
+        else if (e-> exprType == newtable_e) {
+            return getEntryName(e -> symbol);
+        }
 
 
         return "periptwsh";
@@ -383,10 +390,11 @@ char* getArg(Expr* e){
 void printQuads(void) {
     int i = 0;
     quad *index;
-
+    printf("\033[0;35mQUAD# \t OPCODE \t \t RESULT \t ARG1 \t ARG2 \t LABEL\033[0m\n");
+    printf("=============================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
-        printf("#%d \t %s \t\t %s \t %s \t %s \t %d \n", i, getOpCode(index), getResult(index -> result), 
+        printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getResult(index -> result), 
             getArg(index -> arg1), getArg(index -> arg2), index -> label);
         i++;
     }
@@ -433,4 +441,25 @@ void resetScopeOffset(void) {
 
     functionLocalOffset = 0;
     return;
+}
+
+Expr * emit_ifTableItem(Expr* e, int scope, int line){
+    assert(e!=NULL);
+    if(e->exprType != tableitem_e){
+        return e;
+    }
+    else {
+        Expr* result = newExpr(var_e);
+        result->symbol = newTemp(scope , line);
+        emit(tablegetelem,e,e->index,result,getcurrQuad()+1, line);
+        return result;
+    }
+}
+
+Expr * member_item(Expr* e, char * name, int scope, int line){
+    e = emit_ifTableItem(e, scope, line);
+    Expr* item = newExpr(tableitem_e);
+    item -> symbol = e-> symbol;
+    item -> index = newExpr_conststring(name);
+    return item;
 }
