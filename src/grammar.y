@@ -52,6 +52,7 @@
 %type <exp> objectdef
 %type <exp> indexed
 %type <exp> indexedelem
+%type <exp> term
 
 %token IF
 %token ELSE
@@ -172,42 +173,113 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
     |term   {printf("term -> expr\n");}  
     ;
 
-term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
-    |OPERATOR_MINUS expr    {printf("- expr -> term\n");}
-    |NOT expr  		{printf("not expr -> term\n");}
+term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
+        printf("(expr) -> term");
+        $$=$2;
+    }
+    |OPERATOR_MINUS expr    {
+        printf("- expr -> term\n");
+        if(checkArith($2) == 1){
+            $$ = newExpr(arithexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+            emit(uminus, $2, NULL, $$, getcurrQuad()+1, yylineno);
+        }else {
+            printf("\033[31mERROR: unary minus expression used outside arithmetic expression \033[0m \n");
+        }
+    }
+    |NOT expr  		{
+            printf("not expr -> term\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope,yylineno);
+            emit(not, $2, NULL, $$, getcurrQuad()+1, yylineno);
+        }
     |OPERATOR_PP lvalue {
             printf("++lvalue -> term\n");
             SymbolTableEntry* temp;
-            temp = lookupScope(yylval.strVal, scope);
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($2 -> symbol), scope);
+            }
+
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
                     yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                }
+            }
+            if(checkArith($2) == 1) {
+                if($2 -> exprType == tableitem_e) {
+                    $$ = emit_ifTableItem($2, scope, yylineno);
+                    emit(add, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
+                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
+                } else {
+                    emit(add, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
+                    $$ = newExpr(arithexpr_e);
+                    $$ -> symbol = newTemp(scope, yylineno);
+                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
                 }
             }
         }
     |lvalue {
                 SymbolTableEntry* temp;
-                temp = lookupScope(yylval.strVal, scope);
+                if(memberflag == 0) {
+                    temp = lookupScope(yylval.strVal, scope);
+                } else {
+                    temp = lookupScope(getEntryName($1 -> symbol), scope);
+                }
                 if(temp != NULL) {
                     if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
                         yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                     }
                 }
-    }   OPERATOR_PP {printf("lvalue++ -> term\n");}
+    }   OPERATOR_PP {
+        printf("lvalue++ -> term\n");
+            if(checkArith($1) == 1){
+                if($1-> exprType == tableitem_e){
+                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
+                    n = emit_ifTableItem($1, scope, yylineno);
+                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(add, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
+                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
+                } else{
+                    emit(assign, $1, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(add, $1, newExpr_constnum(1), $1, getcurrQuad()+1, yylineno);
+                }
+            }
+        }
     |OPERATOR_MM lvalue {
             printf("--lvalue -> term\n");
             SymbolTableEntry* temp;
-            temp = lookupScope(yylval.strVal, scope);
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($2 -> symbol), scope);
+            }
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
                     yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
                 }
             }
+            if(checkArith($2) == 1) {
+                if($2 -> exprType == tableitem_e) {
+                    $$ = emit_ifTableItem($2, scope, yylineno);
+                    emit(sub, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
+                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
+                } else {
+                    emit(sub, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
+                    $$ = newExpr(arithexpr_e);
+                    $$ -> symbol = newTemp(scope, yylineno);
+                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
+                }
+            }
         }
     |lvalue {
-            printf("++lvalue -> term\n");
             SymbolTableEntry* temp;
-            temp = lookupScope(yylval.strVal, scope);
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($1 -> symbol), scope);
+            }
             if(temp != NULL) {
                 if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
                     yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
@@ -215,9 +287,24 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {printf("(expr) -> term");}
             }
         } OPERATOR_MM {
             printf("lvalue-- -> term\n");
+            if(checkArith($1) == 1){
+                if($1 -> exprType == tableitem_e) {
+                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
+                    n = emit_ifTableItem($1, scope, yylineno);
+                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(sub, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
+                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
+                } else{
+                    emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
+                    emit(sub, $1, newExpr_constnum(1), $1, getcurrQuad() + 1, yylineno);
+                }
+            }
 
         }
-    |primary    {printf("primary -> term\n");}
+    |primary    {
+        printf("primary -> term\n");
+        $$ = $1;
+        }
     ;
 
 assignexpr: lvalue {
@@ -284,7 +371,7 @@ lvalue: ID  {
     temp = lookupEverything(yylval.strVal, scope);
     assert(temp!=NULL);
     $$ = lvalue_expr(temp, scope, yylineno);
-  
+
     }
     |LOCAL_KEYWORD ID   {
         printf("local ID -> lvalue\n");
@@ -314,7 +401,7 @@ lvalue: ID  {
     ;
 
 member: lvalue DOT ID   {
-        printf("lvalue.ID -> mebmer\n");
+        printf("lvalue.ID -> member\n");
         $$ = member_item($1, yylval.strVal, scope, yylineno); /*DANGER debug saving time*/
     }
     |lvalue LEFT_BRACE expr RIGHT_BRACE 
@@ -389,27 +476,27 @@ objectdef: LEFT_BRACE elist RIGHT_BRACE {
         emit(tablecreate, NULL, NULL, t, getcurrQuad() + 1, yylineno);
         index = exprStack -> next;
         while(index != NULL) {
-            emit(tablesetelem, index, newExpr_constnum(i), t, getcurrQuad() + 1, yylineno);
+            emit(tablesetelem, newExpr_constnum(i), index, t, getcurrQuad() + 1, yylineno);
             i++;
             index = index -> next;
         }
         $$ = t;
+        exprStack-> next = NULL;
     }
     |LEFT_BRACE indexed RIGHT_BRACE {
-        printf("[indexed] -> objectdef\n]");
+        printf("[indexed] -> objectdef\n");
         Expr* index;
         Expr *t = newExpr(newtable_e);
         t -> symbol = newTemp(scope, yylineno);
         emit(tablecreate, NULL, NULL, t, getcurrQuad() + 1, yylineno);
         index = exprStack -> next;
         while(index != NULL) {
-            
-
+            emit(tablesetelem,  index->index, index-> indexedelem_value, t, getcurrQuad() + 1, yylineno);
             index = index -> next;
         }
         
         $$ = t;
-
+        exprStack-> next = NULL;
     }
     ;
 
@@ -435,22 +522,10 @@ indexed: indexedelem {
 
 indexedelem: LEFT_BRACKET expr COLON expr RIGHT_BRACKET {
         printf("{expr : expr} -> indexed elem\n");
-        //TODO: Create properly the expr
         Expr* t = newExpr(tableitem_e);
         t -> index = $2;
-        switch($4 -> exprType) {
-            case constnum_e:
-                t -> numConst = $4 -> numConst;
-                break;
-            case constbool_e:
-                t -> boolConst = $4 -> boolConst;
-                break;
-            case conststring_e:
-                t -> strConst = $4 -> strConst;
-                break;
-            default:
-                assert(0);
-        }    
+        t -> indexedelem_value = $4;       
+        $$ = t;    
     }
     ;
 
@@ -609,9 +684,9 @@ funcdef: FUNCTION ID {
 const: REAL {$$ = newExpr_constnum(yylval.doubleVal);}
     |INTEGER {$$ = newExpr_constnum(yylval.intVal);}
     |STRING  {$$ = newExpr_conststring(yylval.strVal);}
-    |NIL
-    |TRUE
-    |FALSE
+    |NIL    {$$ = newExpr(nil_e);}
+    |TRUE   {$$ = newExpr_constbool(1);}
+    |FALSE  {$$ = newExpr_constbool(0);}
     ;
 
 idlist: ID {
@@ -689,9 +764,9 @@ int main(int argc, char* argv[]){
 
     yyparse();
 
-    printEntries();
+    //printEntries();
 
-    //printQuads();
+    printQuads();
 
     return 0;
 }

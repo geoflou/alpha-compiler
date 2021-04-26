@@ -43,13 +43,15 @@ enum expr_t {
 
     constnum_e,
     constbool_e,
-    conststring_e
+    conststring_e,
+    nil_e,
 };
 
 typedef struct expr{
     enum expr_t exprType;
     SymbolTableEntry* symbol;
     struct expr* index;
+    struct expr* indexedelem_value;
     double numConst;
     char* strConst;
     unsigned char boolConst;
@@ -116,3 +118,7 @@ unsigned int getcurrQuad(void);
 Expr * emit_ifTableItem(Expr* e, int scope, int line);
 
 Expr * member_item(Expr* e, char * name, int scope, int line); 
+
+void deleteExprList(Expr* start);
+
+int checkArith(Expr* e);
