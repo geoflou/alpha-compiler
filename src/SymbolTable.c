@@ -249,6 +249,7 @@ void printEntries(void){
         printScope(symbolIndex);
         scopeIndex = scopeIndex -> next;
     }
+    printf("-------------------------------------------\n");
     return;
 }
 
