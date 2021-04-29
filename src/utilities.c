@@ -515,10 +515,9 @@ void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name){
 
 MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m){
     MinasTirithTouSpitiouMou* traverse = (MinasTirithTouSpitiouMou*)malloc(sizeof(MinasTirithTouSpitiouMou*));
-    traverse = m-> next;
+    traverse = m -> next;
     m-> next = traverse-> next;
-    traverse-> next =NULL;
-   
+    traverse-> next = NULL;
     return traverse;
     
 }

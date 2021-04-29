@@ -194,7 +194,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
     |NOT expr  		{
             printf("not expr -> term\n");
             $$ = newExpr(boolexpr_e);
-            $$ -> symbol = newTemp(scope,yylineno);
+            $$ -> symbol = newTemp(scope, yylineno);
             emit(not, $2, NULL, $$, getcurrQuad()+1, yylineno);
         }
     |OPERATOR_PP lvalue {
@@ -242,6 +242,8 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
     }   OPERATOR_PP {
         printf("lvalue++ -> term\n");
             if(checkArith($1) == 1){
+                $$ = newExpr(var_e);
+                $$ -> symbol = newTemp(scope, yylineno);
                 if($1-> exprType == tableitem_e){
                     Expr* n = (Expr*)malloc(sizeof(Expr)); 
                     n = emit_ifTableItem($1, scope, yylineno);
@@ -301,6 +303,8 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
         } OPERATOR_MM {
             printf("lvalue-- -> term\n");
             if(checkArith($1) == 1){
+                $$ = newExpr(var_e);
+                $$ -> symbol = newTemp(scope, yylineno);
                 if($1 -> exprType == tableitem_e) {
                     Expr* n = (Expr*)malloc(sizeof(Expr)); 
                     n = emit_ifTableItem($1, scope, yylineno);
@@ -559,9 +563,8 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
 
 funcdef: FUNCTION ID {
         funcFlag++;
-        if(funcFlag>1){
-            insertOffsetStack(offsetStack, yylval.strVal);
-        }
+        insertOffsetStack(offsetStack, yylval.strVal);
+
         currFunc = strdup(yylval.strVal);
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
@@ -614,7 +617,6 @@ funcdef: FUNCTION ID {
             insertEntry(new_entry);
             $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
             emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
-            lushAlex = $<exp>$;
 
 
             temp_func -> name = "";
@@ -630,14 +632,17 @@ funcdef: FUNCTION ID {
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
-       lushAlex->symbol =  updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
-        emit(funcend,NULL, NULL,lushAlex,getcurrQuad()+1, yylineno);
-        if(funcFlag > 0){
+        if(funcFlag >= 0){
             MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
+            lushAlex -> symbol = lookupScope(tmp -> name, scope);
+            printf("%s \n", getEntryName(lushAlex -> symbol));
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
         }
+        $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
+        updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
         exitScopeSpace();
         exitScopeSpace();
     }
@@ -648,9 +653,7 @@ funcdef: FUNCTION ID {
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
         anonFuncCounter++;
-        if(funcFlag>1){
-            insertOffsetStack(offsetStack, fname);
-        }
+        insertOffsetStack(offsetStack, fname);
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         temp_func -> name = fname;
@@ -705,7 +708,6 @@ funcdef: FUNCTION ID {
             insertEntry(new_entry);
             $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
             emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
-            lushAlex = $<exp>$;
             
             temp_func -> name = "";
             temp_func -> scope = 0;
@@ -715,23 +717,25 @@ funcdef: FUNCTION ID {
             arg_index = 0;
             
         }
-         enterScopeSpace();
-         resetScopeOffset();
+        enterScopeSpace();
+        resetScopeOffset();
 
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
-        emit(funcend,NULL, NULL,lushAlex,getcurrQuad()+1, yylineno);
-        updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), scope);
-        exitScopeSpace();
-        exitScopeSpace();
-         if(funcFlag > 0){
+        if(funcFlag >= 0){
             MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
+            lushAlex -> symbol = lookupScope(tmp -> name, scope);
+            printf("%s \n", getEntryName(lushAlex -> symbol));
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
-
         }
+        $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
+        updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
+        exitScopeSpace();
+        exitScopeSpace();
     }
     ;
 
