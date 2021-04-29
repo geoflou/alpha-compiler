@@ -32,7 +32,6 @@ typedef struct Function{
     unsigned int totalLocalVars;
 } Function;
 
-
 typedef struct SymbolTableEntry{
     int isActive;
     Variable *varVal;
@@ -41,6 +40,15 @@ typedef struct SymbolTableEntry{
     int offset;
     struct SymbolTableEntry *next;
 } SymbolTableEntry;
+
+typedef struct ScopeNode {
+    int label;
+    struct SymbolTableEntry* list;
+} ScopeNode;
+
+#define EXPAND_SCOPE_SIZE 10
+#define CURRENT_SCOPES (totalScopes * sizeof(ScopeNode))
+#define NEW_SCOPE_SIZE (EXPAND_SCOPE_SIZE *sizeof(ScopeNode) * CURRENT_SCOPES)
 
 void initTable(void);
 

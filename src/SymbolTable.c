@@ -4,6 +4,9 @@ int i;
 
 SymbolTableEntry *SymbolTable[1034];
 
+ScopeNode* scopes = (ScopeNode*) 0;
+unsigned totalScopes = 0;
+
 
 void initTable(void){
     int i;
@@ -283,7 +286,6 @@ char *getEntryType(SymbolTableEntry *symbol){
     }
 }
 
-
 char *getEntryName(SymbolTableEntry *symbol){
     Variable *varTMP;
     Function *funcTMP;
@@ -300,7 +302,6 @@ char *getEntryName(SymbolTableEntry *symbol){
 
     assert(0);
 }
-
 
 int getEntryLine(SymbolTableEntry *symbol){
     Variable *varTMP;
@@ -319,7 +320,6 @@ int getEntryLine(SymbolTableEntry *symbol){
     assert(0);
 }
 
-
 int getEntryScope(SymbolTableEntry *symbol){
     Variable *varTMP;
     Function *funcTMP;
@@ -336,7 +336,6 @@ int getEntryScope(SymbolTableEntry *symbol){
 
     assert(0);
 }
-
 
 void insertLibraryFunctions(void){
     insertFunction("print");
@@ -465,3 +464,4 @@ SymbolTableEntry* updateEntry(char* name, int totals, int scope) {
     s->funcVal->totalLocalVars = totals;
     return s;
 }
+
