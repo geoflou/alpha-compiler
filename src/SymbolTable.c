@@ -463,7 +463,7 @@ int comparelibfunc(char *name){
     return 0;
 }
 
-SymbolTableEntry* updateEntry(char* name, int totals, int scope){
+SymbolTableEntry* updateEntry(char* name, int totals, int scope) {
     SymbolTableEntry* s;
     s = lookupScope(name, scope);
     assert(s !=NULL);

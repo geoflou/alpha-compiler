@@ -11,16 +11,14 @@ unsigned scopeSpaceCounter = 1;
 
 unsigned tempCounter = 0;
 
-void insertID(char *name, int scope, int line)
-{
+void insertID(char *name, int scope, int line) {
     SymbolTableEntry *temp;
     SymbolTableEntry *new_entry;
     Variable *new_var;
 
     temp = lookupEverything(name, scope);
 
-    if (temp == NULL)
-    {
+    if (temp == NULL) {
         new_entry = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
         new_var = (Variable *)malloc(sizeof(Variable));
 
@@ -39,22 +37,19 @@ void insertID(char *name, int scope, int line)
         insertEntry(new_entry);
         return;
     }
-    if (getEntryType(temp) == "USERFUNC" && temp->isActive == 1)
-    {
+    if (getEntryType(temp) == "USERFUNC" && temp->isActive == 1) {
         printf("\033[31mERROR: A function has taken already that name!\033[0m");
     }
 
     return;
 }
 
-void insertLocalID(char *name, int scope, int line)
-{
+void insertLocalID(char *name, int scope, int line) {
     SymbolTableEntry *temp;
     SymbolTableEntry *new_entry;
     Variable *new_var;
 
-    if (comparelibfunc(name) == -1)
-    {
+    if (comparelibfunc(name) == -1) {
         printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
         yyerror("\t");
         return;
@@ -62,8 +57,7 @@ void insertLocalID(char *name, int scope, int line)
 
     temp = lookupScope(name, scope);
 
-    if (temp == NULL)
-    {
+    if (temp == NULL) {
         new_entry = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
         new_var = (Variable *)malloc(sizeof(Variable));
 
@@ -83,23 +77,20 @@ void insertLocalID(char *name, int scope, int line)
         return;
     }
 
-    if (temp->type == USERFUNC && temp->isActive == 1)
-    {
+    if (temp->type == USERFUNC && temp->isActive == 1) {
         printf("\033[31mERROR: A user function with that name already exists!\033[0m\n");
     }
 
     return;
 }
 
-void insertFormal(char *name, int scope, int line)
-{
+void insertFormal(char *name, int scope, int line) {
     SymbolTableEntry *temp;
     SymbolTableEntry *new_entry;
     Variable *new_var;
 
     assert(name != NULL);
-    if (comparelibfunc(name) == -1)
-    {
+    if (comparelibfunc(name) == -1) {
         printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
         yyerror("\t");
         return;
@@ -123,36 +114,30 @@ void insertFormal(char *name, int scope, int line)
     return;
 }
 
-unsigned currScopeOffset(void)
-{
-    if (scopeSpaceCounter == 1)
-    {
+unsigned currScopeOffset(void) {
+    if (scopeSpaceCounter == 1) {
         return programVarOffset;
     }
 
-    if (scopeSpaceCounter % 2 == 0)
-    {
+    if (scopeSpaceCounter % 2 == 0) {
         return formalArgOffset;
     }
 
     return functionLocalOffset;
 }
 
-void enterScopeSpace(void)
-{
+void enterScopeSpace(void) {
     scopeSpaceCounter++;
     return;
 }
 
-void exitScopeSpace(void)
-{
+void exitScopeSpace(void) {
     assert(scopeSpaceCounter > 1);
     --scopeSpaceCounter;
     return;
 }
 
-void expand(void)
-{
+void expand(void) {
     assert(total == currQuad);
     quad *p = (quad *)malloc(NEW_SIZE);
     if (quads)
@@ -167,10 +152,8 @@ void expand(void)
     return;
 }
 
-void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, unsigned label, unsigned line)
-{
-    if (currQuad == total)
-    {
+void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, unsigned label, unsigned line) {
+    if (currQuad == total) {
         expand();
     }
 
@@ -185,22 +168,19 @@ void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, unsigned label,
     return;
 }
 
-char *newTempName(void)
-{
+char *newTempName(void) {
     char *name = (char *)malloc(sizeof(char) * 10);
     sprintf(name, "_t%d", tempCounter);
     tempCounter++;
     return name;
 }
 
-SymbolTableEntry *newTemp(int scope, int line)
-{
+SymbolTableEntry *newTemp(int scope, int line) {
     char *name = newTempName();
     Variable *newVar;
     SymbolTableEntry *sym = lookupScope(name, scope);
 
-    if (sym != NULL)
-    {
+    if (sym != NULL) {
         return sym;
     }
 
@@ -222,8 +202,7 @@ SymbolTableEntry *newTemp(int scope, int line)
     return sym;
 }
 
-Expr *lvalue_expr(SymbolTableEntry *sym, int scope, int line)
-{
+Expr *lvalue_expr(SymbolTableEntry *sym, int scope, int line) {
     assert(sym != NULL);
     Expr *e = (Expr *)malloc(sizeof(Expr));
     memset(e, 0, sizeof(Expr)); //possible segfault
@@ -231,20 +210,17 @@ Expr *lvalue_expr(SymbolTableEntry *sym, int scope, int line)
     e->next = (Expr *)0;
     e->symbol = sym;
 
-    if (sym->type == USERFUNC)
-    {
+    if (sym->type == USERFUNC) {
         e->exprType = programfunc_e;
         return e;
     }
 
-    if (sym->type == LIBFUNC)
-    {
+    if (sym->type == LIBFUNC) {
         e->exprType = libraryfunc_e;
         return e;
     }
 
-    if (sym->type == GLOBAL || sym->type == LOCAL || sym->type == FORMAL)
-    {
+    if (sym->type == GLOBAL || sym->type == LOCAL || sym->type == FORMAL) {
         e->exprType = var_e;
         return e;
     }
@@ -252,22 +228,19 @@ Expr *lvalue_expr(SymbolTableEntry *sym, int scope, int line)
     assert(0);
 }
 
-Expr *newExpr(enum expr_t type)
-{
+Expr *newExpr(enum expr_t type) {
     Expr *newEx = (Expr *)malloc(sizeof(Expr));
     newEx->exprType = type;
     return newEx;
 }
 
-Expr *newExpr_conststring(char *s)
-{
+Expr *newExpr_conststring(char *s) {
     Expr *e = newExpr(conststring_e);
     e->strConst = strdup(s);
     return e;
 }
 
-Expr *newExpr_constbool(unsigned char b)
-{
+Expr *newExpr_constbool(unsigned char b) {
     Expr *e = newExpr(constbool_e);
     e->boolConst = b;
     return e;
@@ -283,108 +256,137 @@ Expr *newExpr_constnum(double s)
 char *getOpCode(quad *q)
 {
     assert(q != NULL);
-    switch (q->op)
-    {
-    case assign:
-        return "assign";
-    case add:
-        return "add";
-    case sub:
-        return "sub";
-    case mul:
-        return "mul";
-    case divide:
-        return "divide";
-    case mod:
-        return "mod";
-    case uminus:
-        return "uminus";
-    case and:
-        return "and";
-    case or:
-        return "or";
-    case not:
-        return "not";
-    case if_eq:
-        return "if_eq";
-    case if_noteq:
-        return "if_noteq";
-    case if_lesseq:
-        return "if_lesseq";
-    case if_greatereq:
-        return "if_greatereq";
-    case if_less:
-        return "if_less";
-    case if_greater:
-        return "if_greater";
-    case call:
-        return "call";
-    case param:
-        return "param";
-    case ret:
-        return "ret";
-    case getretval:
-        return "getretval";
-    case funcstart:
-        return "funcstart";
-    case funcend:
-        return "funcend";
-    case tablecreate:
-        return "tablecreate";
-    case tablegetelem:
-        return "tablegetelem";
-    case tablesetelem:
-        return "tablesetelem";
-    case jump:
-        return "jump";
+    switch (q->op) {
+        case assign:
+            return "assign";
 
-    default:
-        assert(0);
-        break;
+        case add:
+            return "add";
+
+        case sub:
+            return "sub";
+
+        case mul:
+            return "mul";
+
+        case divide:
+            return "divide";
+
+        case mod:
+            return "mod";
+
+        case uminus:
+            return "uminus";
+
+        case and:
+            return "and";
+
+        case or:
+            return "or";
+
+        case not:
+            return "not";
+
+        case if_eq:
+            return "if_eq";
+
+        case if_noteq:
+            return "if_noteq";
+
+        case if_lesseq:
+            return "if_lesseq";
+
+        case if_greatereq:
+            return "if_greatereq";
+
+        case if_less:
+            return "if_less";
+
+        case if_greater:
+            return "if_greater";
+
+        case call:
+            return "call";
+
+        case param:
+            return "param";
+
+        case ret:
+            return "ret";
+
+        case getretval:
+            return "getretval";
+
+        case funcstart:
+            return "funcstart";
+
+        case funcend:
+            return "funcend";
+
+        case tablecreate:
+            return "tablecreate";
+
+        case tablegetelem:
+            return "tablegetelem";
+
+        case tablesetelem:
+            return "tablesetelem";
+
+        case jump:
+            return "jump";
+
+        default:
+            assert(0);
+            break;
     }
 }
 
-char* getResult(Expr* e){
+char* getResult(Expr* e) {
     assert(e!=NULL);
     return getEntryName(e->symbol);
 }
 
-char* getArg(Expr* e){
+char* getArg(Expr* e) {
     char * toString = (char*)malloc(sizeof(char)* 100);
     
-        if(e == NULL) {
-            return "\t";
-        }
-        if(e-> exprType == var_e || e-> exprType == programfunc_e || e-> exprType == libraryfunc_e){
-            return getEntryName(e->symbol);
-        }
-        else if (e-> exprType == conststring_e){
-            sprintf(toString, "\"%s\"", e->strConst);
-            return toString;
-        }
-        else if (e-> exprType == constnum_e) {
-            sprintf(toString, "%0.1f", e->numConst);
-            return toString;
-        }
-        else if(e-> exprType == constbool_e){
-            if (e->boolConst==0)
-            {
+    if(e == NULL) {
+        return "\t";
+    }
+
+    if(e-> exprType == var_e || e-> exprType == programfunc_e || e-> exprType == libraryfunc_e) {
+        return getEntryName(e->symbol);
+    }
+
+    if (e-> exprType == conststring_e) {
+        sprintf(toString, "\"%s\"", e->strConst);
+        return toString;
+    }
+
+    if (e-> exprType == constnum_e) {
+        sprintf(toString, "%0.1f", e->numConst);
+        return toString;
+    }
+
+    if(e-> exprType == constbool_e) {
+        if (e->boolConst==0) {
                 return "false";
-            }
-            return "true";
-        }
-        else if(e -> exprType == arithexpr_e || e -> exprType == assignexpr_e) {
-            return getEntryName(e -> symbol);
-        }
-        else if (e-> exprType == tableitem_e) {
-            return getEntryName(e -> symbol);
-        }
-        else if (e-> exprType == newtable_e) {
-            return getEntryName(e -> symbol);
         }
 
+        return "true";
+    }
 
-        return "periptwsh";
+    if(e -> exprType == arithexpr_e || e -> exprType == assignexpr_e) {
+        return getEntryName(e -> symbol);
+    }
+    if(e-> exprType == tableitem_e) {
+        return getEntryName(e -> symbol);
+    }
+
+    if (e-> exprType == newtable_e) {
+        return getEntryName(e -> symbol);
+    }
+
+    return "periptwsh";
 
 }
 
@@ -412,14 +414,12 @@ unsigned int getcurrQuad(void) {
 
 void incScopeOffset(void) {
 
-    if (scopeSpaceCounter == 1)
-    {
+    if (scopeSpaceCounter == 1) {
         programVarOffset++;
         return;
     }
 
-    if (scopeSpaceCounter % 2 == 0)
-    {
+    if (scopeSpaceCounter % 2 == 0) {
         formalArgOffset++;
         return;
     }
@@ -431,14 +431,12 @@ void incScopeOffset(void) {
 
 void resetScopeOffset(void) {
 
-    if (scopeSpaceCounter == 1)
-    {
+    if (scopeSpaceCounter == 1) {
         programVarOffset = 0;
         return;
     }
 
-    if (scopeSpaceCounter % 2 == 0)
-    {
+    if (scopeSpaceCounter % 2 == 0) {
         formalArgOffset = 0;
         return;
     }
@@ -447,9 +445,9 @@ void resetScopeOffset(void) {
     return;
 }
 
-Expr * emit_ifTableItem(Expr* e, int scope, int line){
+Expr * emit_ifTableItem(Expr* e, int scope, int line) {
     assert(e!=NULL);
-    if(e->exprType != tableitem_e){
+    if(e->exprType != tableitem_e) {
         return e;
     }
     else {
@@ -460,7 +458,7 @@ Expr * emit_ifTableItem(Expr* e, int scope, int line){
     }
 }
 
-Expr * member_item(Expr* e, char * name, int scope, int line){
+Expr * member_item(Expr* e, char * name, int scope, int line) {
     e = emit_ifTableItem(e, scope, line);
     Expr* item = newExpr(tableitem_e);
     item -> symbol = e-> symbol;
@@ -468,43 +466,43 @@ Expr * member_item(Expr* e, char * name, int scope, int line){
     return item;
 }
 
-void deleteExprList(Expr* start){
-    if(start == NULL){
+void deleteExprList(Expr* start) {
+    if(start == NULL) {
         return ;
     }
     Expr* tmp;
-    while(start != NULL){
+    while(start != NULL) {
         tmp = start;
         start = start-> next;
         free(tmp);
     }
 }
 
-int checkArith(Expr* e){
+int checkArith(Expr* e) {
     if(e->exprType == constnum_e || e->exprType == arithexpr_e || 
-        e->exprType == var_e || e->exprType == tableitem_e){
+        e->exprType == var_e || e->exprType == tableitem_e) {
         return 1;
     }
     return 0;
 }
 
-void restoreformalArgs(MinasTirithTouSpitiouMou* m){
+void restoreformalArgs(MinasTirithTouSpitiouMou* m) {
     assert(m != NULL);
     formalArgOffset = m->formalArgOffset;
 }
 
-void restoreLocalVars(MinasTirithTouSpitiouMou* m){
+void restoreLocalVars(MinasTirithTouSpitiouMou* m) {
     assert(m != NULL);
     functionLocalOffset = m->localVarOffset;
 }
 
-void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name){
+void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name) {
     MinasTirithTouSpitiouMou* newnode = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
     newnode -> localVarOffset = functionLocalOffset;
     newnode -> formalArgOffset = formalArgOffset;
     newnode -> name = name;
     newnode -> next = NULL;
-    if(m->next == NULL){
+    if(m->next == NULL) {
         m->next = newnode;
         return;
     }
@@ -513,7 +511,7 @@ void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name){
         return;
 }
 
-MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m){
+MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m) {
     MinasTirithTouSpitiouMou* traverse = (MinasTirithTouSpitiouMou*)malloc(sizeof(MinasTirithTouSpitiouMou*));
     traverse = m -> next;
     m-> next = traverse-> next;
@@ -521,6 +519,6 @@ MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m){
     return traverse;
     
 }
-int getScopeSpaceCounter(void){
+int getScopeSpaceCounter(void) {
     return scopeSpaceCounter;
 }
