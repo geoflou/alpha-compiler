@@ -22,17 +22,14 @@ void initTable(void){
     return;
 }
 
-
 int hashForBucket(char *symbolName){
     assert(symbolName != NULL);
     return (atoi(symbolName) * HASH_NUMBER) % NON_SCOPE_BUCKETS;
 }
 
-
 int hashForScope(int symbolScope){
     return (symbolScope % SCOPE_BUCKETS) + NON_SCOPE_BUCKETS;
 }
-
 
 void insertEntry(SymbolTableEntry *symbol){
     int bucket, scopeLink;
@@ -166,7 +163,6 @@ SymbolTableEntry *lookupScope(char *name, int scope){
     return NULL;
 }
 
-
 void hideEntries(int scope){
     hideFromScopeLink(scope);
     hideFromBuckets(scope);
@@ -207,7 +203,7 @@ void hideFromBuckets(int scope){
         symbolIndex = SymbolTable[i] -> next;
 
         while(symbolIndex != NULL){
- 
+
             if(symbolIndex -> varVal != NULL){
                 varTMP = symbolIndex -> varVal;
                 if(varTMP -> scope == scope){
@@ -228,7 +224,6 @@ void hideFromBuckets(int scope){
 
     return;
 }
-
 
 void printEntries(void){
     int i;
