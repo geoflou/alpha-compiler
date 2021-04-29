@@ -43,12 +43,9 @@ typedef struct SymbolTableEntry{
 
 typedef struct ScopeNode {
     int label;
+    struct ScopeNode* next;
     struct SymbolTableEntry* list;
 } ScopeNode;
-
-#define EXPAND_SCOPE_SIZE 10
-#define CURRENT_SCOPES (totalScopes * sizeof(ScopeNode))
-#define NEW_SCOPE_SIZE (EXPAND_SCOPE_SIZE *sizeof(ScopeNode) * CURRENT_SCOPES)
 
 void initTable(void);
 
@@ -89,3 +86,9 @@ int comparelibfunc(char *name);
 SymbolTableEntry *lookupforCalls(char *name, int scope);
 
 SymbolTableEntry* updateEntry(char* name, int totals, int scope);
+
+void expandScopes(void);
+
+void insertInScope(SymbolTableEntry * entry);
+
+void createScope(void);
