@@ -342,7 +342,6 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
-
             if($1->exprType == tableitem_e) {
                 emit(tablesetelem, $1->index, $4, $1, getcurrQuad()+1, yylineno );
                 $$ = emit_ifTableItem($1,scope,yylineno);
@@ -636,7 +635,6 @@ funcdef: FUNCTION ID {
             MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
-            printf("%s \n", getEntryName(lushAlex -> symbol));
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
         }
@@ -727,7 +725,6 @@ funcdef: FUNCTION ID {
             MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
-            printf("%s \n", getEntryName(lushAlex -> symbol));
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
         }
@@ -825,9 +822,9 @@ int main(int argc, char* argv[]){
 
     yyparse();
 
-    printEntries();
+    //printEntries();
 
-    //printQuads();
+    printQuads();
 
     return 0;
 }
