@@ -2,7 +2,7 @@
 
 int i;
 
-SymbolTableEntry *SymbolTable[1034];
+SymbolTableEntry *SymbolTable[SYMBOL_TABLE_BUCKETS];
 
 ScopeNode* scopes = NULL;
 unsigned currentMaxScope = 0;
@@ -32,9 +32,6 @@ int hashForBucket(char *symbolName){
     return (atoi(symbolName) * HASH_NUMBER) % NON_SCOPE_BUCKETS;
 }
 
-int hashForScope(int symbolScope){
-    return (symbolScope % SCOPE_BUCKETS) + NON_SCOPE_BUCKETS;
-}
 
 void insertEntry(SymbolTableEntry *symbol){
     int bucket, scopeLink;
@@ -471,7 +468,6 @@ SymbolTableEntry* updateEntry(char* name, int totals, int scope) {
 }
 
 void expandScopes(void) {
-    printf("expand\n");
     int i = 0;
     while(i < 5) {
         createScope();
