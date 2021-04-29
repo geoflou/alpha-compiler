@@ -238,6 +238,7 @@ void printEntries(void){
 
     for(i = 0;i < 10;i++){
 
+        printf("---------------  Scope #%d  ---------------\n", i);
         symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
 
         if(symbolIndex == NULL){
@@ -245,8 +246,6 @@ void printEntries(void){
         }
 
         symbolIndex = symbolIndex -> next;
-        
-        printf("---------------  Scope #%d  ---------------\n", i);
         printScope(symbolIndex);
 
     }
@@ -462,4 +461,12 @@ int comparelibfunc(char *name){
         }
 
     return 0;
+}
+
+SymbolTableEntry* updateEntry(char* name, int totals, int scope){
+    SymbolTableEntry* s;
+    s = lookupScope(name, scope);
+    assert(s !=NULL);
+    s->funcVal->totalLocalVars = totals;
+    return s;
 }

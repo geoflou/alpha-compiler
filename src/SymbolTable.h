@@ -28,6 +28,8 @@ typedef struct Function{
     char ** arguments;
     unsigned int scope;
     unsigned int line;
+    unsigned int label;
+    unsigned int totalLocalVars;
 } Function;
 
 
@@ -77,3 +79,5 @@ int getEntryScope(SymbolTableEntry *symbol);
 int comparelibfunc(char *name);
 
 SymbolTableEntry *lookupforCalls(char *name, int scope);
+
+SymbolTableEntry* updateEntry(char* name, int totals, int scope);

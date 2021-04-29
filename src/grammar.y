@@ -17,7 +17,10 @@
 
     Expr* exprStack = (Expr *) 0;
 
+    MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
+
     Function* temp_func;
+    Expr* lushAlex = (Expr *) 0;
     int arg_index = 0;
 
     int anonFuncCounter = 0;
@@ -53,6 +56,7 @@
 %type <exp> indexed
 %type <exp> indexedelem
 %type <exp> term
+%type <exp> funcdef
 
 %token IF
 %token ELSE
@@ -219,6 +223,9 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                     emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
                 }
             }
+            else {
+            printf("\033[31mERROR: plus plus expression used outside arithmetic expression \033[0m \n");
+        }
         }
     |lvalue {
                 SymbolTableEntry* temp;
@@ -246,6 +253,9 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                     emit(add, $1, newExpr_constnum(1), $1, getcurrQuad()+1, yylineno);
                 }
             }
+            else {
+            printf("\033[31mERROR: expression plus plus used outside arithmetic expression \033[0m \n");
+        }
         }
     |OPERATOR_MM lvalue {
             printf("--lvalue -> term\n");
@@ -272,6 +282,9 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                     emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
                 }
             }
+            else {
+            printf("\033[31mERROR: minus minus expression used outside arithmetic expression \033[0m \n");
+        }
         }
     |lvalue {
             SymbolTableEntry* temp;
@@ -299,6 +312,9 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                     emit(sub, $1, newExpr_constnum(1), $1, getcurrQuad() + 1, yylineno);
                 }
             }
+            else {
+            printf("\033[31mERROR: expression minus minus used outside arithmetic expression \033[0m \n");
+        }
 
         }
     |primary    {
@@ -543,14 +559,18 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
 
 funcdef: FUNCTION ID {
         funcFlag++;
+        if(funcFlag>1){
+            insertOffsetStack(offsetStack, yylval.strVal);
+        }
         currFunc = strdup(yylval.strVal);
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         enterScopeSpace();
+        resetScopeOffset();
     }
     LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS  {
-        enterScopeSpace();
+        
         SymbolTableEntry *temp;
         temp = lookupScope(temp_func -> name, temp_func -> scope);
 
@@ -579,6 +599,7 @@ funcdef: FUNCTION ID {
             new_func -> arguments = (char**)malloc(10*sizeof(char *));
 
             new_func -> name = strdup(temp_func -> name);
+            new_func-> label = getcurrQuad()+1;
             new_func -> scope = temp_func -> scope;
             new_func -> line = temp_func -> line;
             for(i = 0;i < arg_index;i++){
@@ -591,6 +612,11 @@ funcdef: FUNCTION ID {
             new_entry -> type = USERFUNC;
 
             insertEntry(new_entry);
+            $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
+            emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
+            lushAlex = $<exp>$;
+
+
             temp_func -> name = "";
             temp_func -> scope = 0;
             temp_func -> line = 0;
@@ -598,27 +624,40 @@ funcdef: FUNCTION ID {
                 temp_func -> arguments[i] = ""; 
             arg_index = 0;
         }
-
+        enterScopeSpace();
+        resetScopeOffset();
     }
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
+       lushAlex->symbol =  updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        emit(funcend,NULL, NULL,lushAlex,getcurrQuad()+1, yylineno);
+        if(funcFlag > 0){
+            MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
+            tmp = popoffsetStack(offsetStack);
+            restoreformalArgs(tmp);
+            restoreLocalVars(tmp);
+        }
         exitScopeSpace();
         exitScopeSpace();
     }
     |FUNCTION {
         funcFlag++;
+         
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
         anonFuncCounter++;
+        if(funcFlag>1){
+            insertOffsetStack(offsetStack, fname);
+        }
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         temp_func -> name = fname;
-        enterScopeSpace();
+         enterScopeSpace();
+         resetScopeOffset();
         
     }LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS {
-        enterScopeSpace();
         SymbolTableEntry *temp;
         temp = lookupScope(temp_func -> name, temp_func -> scope);
 
@@ -648,6 +687,7 @@ funcdef: FUNCTION ID {
 
             new_func -> arguments = (char**)malloc(10*sizeof(char *));
             new_func -> name = strdup(temp_func -> name);
+            new_func-> label = getcurrQuad()+1;
             new_func -> scope = temp_func -> scope;
             new_func -> line = temp_func -> line;
 
@@ -663,6 +703,9 @@ funcdef: FUNCTION ID {
             new_entry -> type = USERFUNC;
 
             insertEntry(new_entry);
+            $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
+            emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
+            lushAlex = $<exp>$;
             
             temp_func -> name = "";
             temp_func -> scope = 0;
@@ -672,12 +715,23 @@ funcdef: FUNCTION ID {
             arg_index = 0;
             
         }
+         enterScopeSpace();
+         resetScopeOffset();
 
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
+        emit(funcend,NULL, NULL,lushAlex,getcurrQuad()+1, yylineno);
+        updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), scope);
         exitScopeSpace();
         exitScopeSpace();
+         if(funcFlag > 0){
+            MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
+            tmp = popoffsetStack(offsetStack);
+            restoreformalArgs(tmp);
+            restoreLocalVars(tmp);
+
+        }
     }
     ;
 
@@ -758,7 +812,10 @@ int main(int argc, char* argv[]){
     temp_func = (Function *)malloc(sizeof(Function));
     temp_func -> arguments =(char**)malloc(10*sizeof(char*));
     exprStack = (Expr*)malloc(sizeof(Expr));
+    offsetStack = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
+    lushAlex = (Expr*)malloc(sizeof(Expr));
     exprStack -> next = NULL;
+    offsetStack-> next = NULL;
 
     initTable();
 

@@ -67,6 +67,13 @@ typedef struct quad {
     unsigned line;
 } quad;
 
+typedef struct offsetStack{
+    char* name;
+   unsigned int localVarOffset;
+   unsigned int formalArgOffset;
+   struct offsetStack* next; 
+}MinasTirithTouSpitiouMou;
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
@@ -88,8 +95,6 @@ void incScopeOffset(void);
 void resetScopeOffset(void);
 
 void enterScopeSpace(void);
-
-void resetScopeOffset(void);
 
 void exitScopeSpace(void);
 
@@ -122,3 +127,13 @@ Expr * member_item(Expr* e, char * name, int scope, int line);
 void deleteExprList(Expr* start);
 
 int checkArith(Expr* e);
+
+void restoreformalArgs(MinasTirithTouSpitiouMou* m);
+
+void restoreLocalVars(MinasTirithTouSpitiouMou* m);
+
+void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name);
+
+MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m);
+
+int getScopeSpaceCounter(void);

@@ -140,7 +140,7 @@ unsigned currScopeOffset(void)
 
 void enterScopeSpace(void)
 {
-    ++scopeSpaceCounter;
+    scopeSpaceCounter++;
     return;
 }
 
@@ -399,6 +399,9 @@ void printQuads(void) {
             getArg(index -> arg1), getArg(index -> arg2), index -> label);
         i++;
     }
+    printf("\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
+    printf("\033[32;1mlocal var offset is : %d\033[0m\n", functionLocalOffset);
+    printf("\033[32;1mformal args offset is : %d\033[0m\n", formalArgOffset);
     
 }
 
@@ -483,4 +486,42 @@ int checkArith(Expr* e){
         return 1;
     }
     return 0;
+}
+
+void restoreformalArgs(MinasTirithTouSpitiouMou* m){
+    assert(m != NULL);
+    formalArgOffset = m->formalArgOffset;
+}
+
+void restoreLocalVars(MinasTirithTouSpitiouMou* m){
+    assert(m != NULL);
+    functionLocalOffset = m->localVarOffset;
+}
+
+void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name){
+    MinasTirithTouSpitiouMou* newnode = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
+    newnode -> localVarOffset = functionLocalOffset;
+    newnode -> formalArgOffset = formalArgOffset;
+    newnode -> name = name;
+    newnode -> next = NULL;
+    if(m->next == NULL){
+        m->next = newnode;
+        return;
+    }
+        newnode->next = m->next;
+        m->next = newnode;
+        return;
+}
+
+MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m){
+    MinasTirithTouSpitiouMou* traverse = (MinasTirithTouSpitiouMou*)malloc(sizeof(MinasTirithTouSpitiouMou*));
+    traverse = m-> next;
+    m-> next = traverse-> next;
+    traverse-> next =NULL;
+   
+    return traverse;
+    
+}
+int getScopeSpaceCounter(void){
+    return scopeSpaceCounter;
 }
