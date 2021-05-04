@@ -615,6 +615,7 @@ funcdef: FUNCTION ID {
 
             insertEntry(new_entry);
             $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
             emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
 
 
@@ -631,8 +632,8 @@ funcdef: FUNCTION ID {
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
+        MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
-            MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
             restoreformalArgs(tmp);
@@ -641,6 +642,7 @@ funcdef: FUNCTION ID {
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
+        patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
     }
@@ -705,6 +707,7 @@ funcdef: FUNCTION ID {
 
             insertEntry(new_entry);
             $<exp>$ = lvalue_expr(new_entry, scope,yylineno);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
             emit(funcstart,NULL, NULL,$<exp>$,getcurrQuad()+1, yylineno);
             
             temp_func -> name = "";
@@ -721,8 +724,8 @@ funcdef: FUNCTION ID {
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
+        MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
-            MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
             restoreformalArgs(tmp);
@@ -731,6 +734,7 @@ funcdef: FUNCTION ID {
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
+        patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
     }

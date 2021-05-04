@@ -69,9 +69,10 @@ typedef struct quad {
 
 typedef struct offsetStack{
     char* name;
-   unsigned int localVarOffset;
-   unsigned int formalArgOffset;
-   struct offsetStack* next; 
+    unsigned int jumpQuad;
+    unsigned int localVarOffset;
+    unsigned int formalArgOffset;
+    struct offsetStack* next; 
 }MinasTirithTouSpitiouMou;
 
 #define EXPAND_SIZE 1024
@@ -137,3 +138,5 @@ void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name);
 MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m);
 
 int getScopeSpaceCounter(void);
+
+void patchLabel(unsigned int quadNo, unsigned int label);

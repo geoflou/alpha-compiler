@@ -342,7 +342,9 @@ char *getOpCode(quad *q)
 }
 
 char* getResult(Expr* e) {
-    assert(e!=NULL);
+    if(e == NULL) {
+        return " ";
+    }
     return getEntryName(e->symbol);
 }
 
@@ -500,6 +502,7 @@ void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name) {
     MinasTirithTouSpitiouMou* newnode = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
     newnode -> localVarOffset = functionLocalOffset;
     newnode -> formalArgOffset = formalArgOffset;
+    newnode -> jumpQuad = getcurrQuad();
     newnode -> name = name;
     newnode -> next = NULL;
     if(m->next == NULL) {
@@ -521,4 +524,9 @@ MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m) {
 }
 int getScopeSpaceCounter(void) {
     return scopeSpaceCounter;
+}
+
+void patchLabel(unsigned int quadNo, unsigned int label) {
+    assert(quadNo < getcurrQuad() && !quads[quadNo].label);
+    quads[quadNo].label = label;
 }
