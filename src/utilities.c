@@ -341,18 +341,11 @@ char *getOpCode(quad *q)
     }
 }
 
-char* getResult(Expr* e) {
-    if(e == NULL) {
-        return " ";
-    }
-    return getEntryName(e->symbol);
-}
-
-char* getArg(Expr* e) {
+char* getExpr(Expr* e) {
     char * toString = (char*)malloc(sizeof(char)* 100);
     
     if(e == NULL) {
-        return "\t";
+        return " ";
     }
 
     if(e-> exprType == var_e || e-> exprType == programfunc_e || e-> exprType == libraryfunc_e) {
@@ -399,8 +392,8 @@ void printQuads(void) {
     printf("=============================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
-        printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getResult(index -> result), 
-            getArg(index -> arg1), getArg(index -> arg2), index -> label);
+        printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getExpr(index -> result), 
+            getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
         i++;
     }
     printf("\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
@@ -529,4 +522,31 @@ int getScopeSpaceCounter(void) {
 void patchLabel(unsigned int quadNo, unsigned int label) {
     assert(quadNo < getcurrQuad() && !quads[quadNo].label);
     quads[quadNo].label = label;
+}
+
+Expr* make_call(Expr* lvalue, Expr* e_list, int scope, int line) {
+    Expr* tmp, *result;
+    Expr* func = (Expr*)malloc(sizeof(Expr));
+    func = emit_ifTableItem(lvalue, scope, line);
+    emitReverse(e_list, line);
+    emit(call, NULL, NULL, func, getcurrQuad() + 1, line);
+    result = (Expr*)malloc(sizeof(Expr));
+    result = newExpr(var_e);
+    result -> symbol = newTemp(scope, line);
+    emit(getretval, NULL, NULL, result, getcurrQuad() + 1, line);
+
+    return result;
+}
+
+
+void emitReverse(Expr* head, int line) {
+    if(head == NULL) {
+        return;
+    }
+    
+    emitReverse(head -> next, line);
+
+
+    emit(param, NULL, NULL, head, getcurrQuad() + 1, line);
+
 }

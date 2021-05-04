@@ -115,9 +115,7 @@ void printQuads(void);
 
 char* getOpCode(quad* q);
 
-char* getResult(Expr* e);
-
-char* getArg(Expr* e);
+char* getExpr(Expr* e);
 
 unsigned int getcurrQuad(void);
 
@@ -140,3 +138,7 @@ MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m);
 int getScopeSpaceCounter(void);
 
 void patchLabel(unsigned int quadNo, unsigned int label);
+
+Expr* make_call(Expr* lvalue, Expr* e_list, int scope, int line);
+
+void emitReverse(Expr* head, int line);

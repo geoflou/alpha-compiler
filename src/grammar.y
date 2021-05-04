@@ -57,6 +57,7 @@
 %type <exp> indexedelem
 %type <exp> term
 %type <exp> funcdef
+%type <exp> call
 
 %token IF
 %token ELSE
@@ -435,7 +436,11 @@ member: lvalue DOT ID   {
     |call LEFT_BRACE expr RIGHT_BRACE   {printf("call[expr] -> member\n");}
     ;
 
-call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {printf("call(elist) -> call\n");}
+call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
+        printf("call(elist) -> call\n");
+        $$ = make_call($1, exprStack -> next, scope, yylineno);
+        exprStack -> next = NULL;
+    }
     |lvalue{
             SymbolTableEntry* temp;
             temp = lookupforCalls(yylval.strVal, scope);
@@ -448,15 +453,28 @@ call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {printf("call(elist) -> call
             
     } callsuffix  {
             printf("lvalue() -> call\n");
+            $1 = emit_ifTableItem($1, scope, yylineno);
+            
         }
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
-        {printf("(funcdef)(elist) -> call\n");}
+        {
+            printf("(funcdef)(elist) -> call\n");
+            Expr* func = (Expr*)malloc(sizeof(Expr));
+            func = newExpr(programfunc_e);
+            func -> symbol = $2 -> symbol;
+            $$ = make_call(func, exprStack -> next, scope, yylineno);
+            exprStack -> next = NULL;
+        }
     ;
 
 callsuffix: methodcall {
         printf("methodcall -> callsuffix\n");
+        //$$ = $1;
     }
-    |normcall   {printf("normcall -> callsuffix\n");}
+    |normcall   {
+        printf("normcall -> callsuffix\n");
+        //$$ = $1;
+    }
     ;
 
 normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
