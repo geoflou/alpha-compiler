@@ -75,6 +75,12 @@ typedef struct offsetStack{
     struct offsetStack* next; 
 }MinasTirithTouSpitiouMou;
 
+typedef struct callStruct{
+    Expr* e_list;
+    unsigned char method;
+    char* name;
+} callStruct;
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)

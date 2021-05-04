@@ -34,6 +34,7 @@
     char *strVal;
     double doubleVal;
     struct expr *exp;
+    struct callStruct *calls;
 }
 
 
@@ -58,6 +59,9 @@
 %type <exp> term
 %type <exp> funcdef
 %type <exp> call
+%type <calls> normcall
+%type <calls> methodcall
+%type <calls> callsuffix
 
 %token IF
 %token ELSE
@@ -360,12 +364,16 @@ assignexpr: lvalue {
     }
     ;
 
+//TODO:Check $$ assignments
 primary: lvalue {printf("lvalue -> primary\n");
                     $$ = emit_ifTableItem($1, scope, yylineno);
     }
     |call   {printf("call -> primary\n");}
     |objectdef  {printf("objectdef -> primary\n");}
-    |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {printf("(funcdef) -> primary\n");}
+    |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {
+        printf("(funcdef) -> primary\n");
+        $$ = $2;
+    }
     |const  {printf("const -> primary\n");}
     ;
 
@@ -454,6 +462,13 @@ call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
     } callsuffix  {
             printf("lvalue() -> call\n");
             $1 = emit_ifTableItem($1, scope, yylineno);
+            if($3 -> method == 1) {
+                Expr* t = (Expr*)malloc(sizeof(Expr));
+                t = $1;
+                $1 = emit_ifTableItem(member_item(t, $3 -> name, scope, yylineno), scope, yylineno);
+                $3 -> e_list -> next = t;
+            }
+            $$ = make_call($1, $3 -> e_list, scope, yylineno);
             
         }
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
@@ -469,18 +484,31 @@ call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
 
 callsuffix: methodcall {
         printf("methodcall -> callsuffix\n");
-        //$$ = $1;
+        $$ = $1;
     }
     |normcall   {
         printf("normcall -> callsuffix\n");
-        //$$ = $1;
+        $$ = $1;
     }
     ;
 
-normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
+        $$ = (callStruct*)malloc(sizeof(callStruct));
+        $$ -> e_list = exprStack -> next;
+        $$ -> method = 0;
+        $$ -> name = NULL;
+        exprStack -> next = NULL;
+    }
     ;
 
-methodcall: DOUBLE_DOT ID normcall  {printf("..id(elist) -> methodcall\n");}
+methodcall: DOUBLE_DOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  {
+        printf("..id(elist) -> methodcall\n");
+        $$ = (callStruct*)malloc(sizeof(callStruct));
+        $$ -> e_list = exprStack -> next;
+        $$ -> method = 1;
+        $$ -> name = $2;
+        exprStack -> next = NULL;
+    }
     ;
 
 elist: expr {
@@ -562,7 +590,7 @@ indexedelem: LEFT_BRACKET expr COLON expr RIGHT_BRACKET {
         Expr* t = newExpr(tableitem_e);
         t -> index = $2;
         t -> indexedelem_value = $4;       
-        $$ = t;    
+        $$ = t;
     }
     ;
 
@@ -666,7 +694,7 @@ funcdef: FUNCTION ID {
     }
     |FUNCTION {
         funcFlag++;
-         
+
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
@@ -675,8 +703,8 @@ funcdef: FUNCTION ID {
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         temp_func -> name = fname;
-         enterScopeSpace();
-         resetScopeOffset();
+        enterScopeSpace();
+        resetScopeOffset();
         
     }LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS {
         SymbolTableEntry *temp;

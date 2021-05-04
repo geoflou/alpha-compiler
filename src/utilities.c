@@ -347,7 +347,6 @@ char* getExpr(Expr* e) {
     if(e == NULL) {
         return " ";
     }
-
     if(e-> exprType == var_e || e-> exprType == programfunc_e || e-> exprType == libraryfunc_e) {
         return getEntryName(e->symbol);
     }
@@ -381,6 +380,7 @@ char* getExpr(Expr* e) {
         return getEntryName(e -> symbol);
     }
 
+    printf("%d\n", e -> exprType);
     return "periptwsh";
 
 }
@@ -543,7 +543,7 @@ void emitReverse(Expr* head, int line) {
     if(head == NULL) {
         return;
     }
-    
+
     emitReverse(head -> next, line);
 
 
