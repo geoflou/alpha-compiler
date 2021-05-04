@@ -86,7 +86,7 @@ SymbolTableEntry *lookupforCalls(char *name, int scope);
 
 SymbolTableEntry* updateEntry(char* name, int totals, int scope);
 
-void expandScopes(void);
+void expandScopes(int maxScope);
 
 void insertInScope(SymbolTableEntry * entry);
 

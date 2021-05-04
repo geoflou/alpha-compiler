@@ -21,7 +21,7 @@ void initTable(void){
         SymbolTable[i] -> varVal = NULL;
     }
 
-    expandScopes();
+    expandScopes(5);
     insertLibraryFunctions();
 
     return;
@@ -127,6 +127,10 @@ SymbolTableEntry *lookupScope(char *name, int scope){
     ScopeNode* scopeIndex;
     Variable *varTMP;
     Function *funcTMP;
+
+    if(scope >= totalScopes - 1) {
+        return NULL;
+    }
 
     assert(name != NULL);
 
@@ -468,9 +472,9 @@ SymbolTableEntry* updateEntry(char* name, int totals, int scope) {
     return s;
 }
 
-void expandScopes(void) {
+void expandScopes(int maxScope) {
     int i = 0;
-    while(i < 5) {
+    while(i < maxScope) {
         createScope();
         i++;
     }
@@ -510,8 +514,8 @@ void insertInScope(SymbolTableEntry * entry) {
     ScopeNode* scopeIndex = scopes;
     SymbolTableEntry* tmp;
 
-    if(scope == totalScopes - 1) {
-        expandScopes();
+    if(scope >= totalScopes - 1) {
+        expandScopes(scope);
     }
     assert(scopeIndex != NULL);
     while(scopeIndex != NULL && scopeIndex -> label != scope) {
