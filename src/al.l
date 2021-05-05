@@ -253,6 +253,7 @@ UNKNOWN_TOKEN       .
 {OPERATOR_LES}        {return OPERATOR_LES;}
 {OPERATOR_GRE}        {return OPERATOR_GRE;}
 {OPERATOR_LEE}        {return OPERATOR_LEE;}
+{OPERATOR_NEQ}        {return OPERATOR_NEQ;}
 {INTEGER}             {yylval.intVal = atoi(yytext);
                         return INTEGER;}
 {REAL}                {yylval.doubleVal = strtod(yytext, &useless_ptr);

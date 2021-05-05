@@ -59,9 +59,13 @@
 %type <exp> term
 %type <exp> funcdef
 %type <exp> call
+
 %type <calls> normcall
 %type <calls> methodcall
 %type <calls> callsuffix
+
+%type <intVal> ifprefix
+%type <intVal> elseprefix
 
 %token IF
 %token ELSE
@@ -161,12 +165,66 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         $$ -> symbol = newTemp(scope, yylineno);
         emit(mul, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
-    | expr OPERATOR_GRT expr    {printf("expr > expr -> expr\n");}
-    | expr OPERATOR_GRE expr    {printf("expr >= expr -> expr\n");}
-    | expr OPERATOR_LES expr    {printf("expr < expr -> expr\n");}
-    | expr OPERATOR_LEE expr    {printf("expr <= expr -> expr\n");}
-    | expr OPERATOR_EQ expr 	{printf("expr == expr -> expr\n");}
-    | expr OPERATOR_NEQ expr    {printf("expr != expr -> expr\n");}
+    | expr OPERATOR_GRT expr    {
+            printf("expr > expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_greater, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
+    | expr OPERATOR_GRE expr    {
+            printf("expr >= expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_greatereq, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
+    | expr OPERATOR_LES expr    {
+            printf("expr < expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_less, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
+    | expr OPERATOR_LEE expr    {
+            printf("expr <= expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_lesseq, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
+    | expr OPERATOR_EQ expr 	{
+            printf("expr == expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_eq, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
+    | expr OPERATOR_NEQ expr    {
+            printf("expr != expr -> expr\n");
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            emit(if_noteq, $1, $3, $$, getcurrQuad() + 3, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+        }
     | expr AND expr    		{
         printf("expr and expr -> expr\n");
         $$ = newExpr(boolexpr_e);
@@ -837,8 +895,28 @@ idlist: ID {
     |{printf("empty -> idlist\n");}
     ;
 
-ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("if(expr) -> ifstmt\n");}
-    |IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt    {printf("if(expr) else -> ifstmt\n");}
+ifprefix: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+    emit(if_eq, newExpr_constbool(1), NULL, $3, getcurrQuad() + 2, yylineno);
+    $$ = getcurrQuad();
+    emit(jump, NULL, NULL, NULL, 0, yylineno);
+}
+    ;
+
+elseprefix: ELSE {
+        $$ = getcurrQuad();
+        emit(jump, NULL, NULL, NULL, 0, yylineno);
+    }
+    ;
+
+ifstmt: ifprefix stmt   { 
+        printf("if(expr) -> ifstmt\n");
+        patchLabel($1, getcurrQuad());
+    }
+    |ifprefix stmt elseprefix stmt    {
+            printf("if(expr) else -> ifstmt\n");
+            patchLabel($1, $3 + 1);
+            patchLabel($3, getcurrQuad());
+        }
     ;
 
 whilestmt: WHILE {loopFlag++;} LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("while(expr) -> whilestmt\n"); loopFlag--;}

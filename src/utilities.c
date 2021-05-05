@@ -369,7 +369,7 @@ char* getExpr(Expr* e) {
         return "true";
     }
 
-    if(e -> exprType == arithexpr_e || e -> exprType == assignexpr_e) {
+    if(e -> exprType == arithexpr_e || e -> exprType == assignexpr_e || e -> exprType == boolexpr_e) {
         return getEntryName(e -> symbol);
     }
     if(e-> exprType == tableitem_e) {
@@ -380,7 +380,6 @@ char* getExpr(Expr* e) {
         return getEntryName(e -> symbol);
     }
 
-    printf("%d\n", e -> exprType);
     return "periptwsh";
 
 }
@@ -520,7 +519,8 @@ int getScopeSpaceCounter(void) {
 }
 
 void patchLabel(unsigned int quadNo, unsigned int label) {
-    assert(quadNo < getcurrQuad() && !quads[quadNo].label);
+    assert(quadNo < getcurrQuad());
+    assert(!quads[quadNo].label);
     quads[quadNo].label = label;
 }
 
