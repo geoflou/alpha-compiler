@@ -35,6 +35,7 @@
     double doubleVal;
     struct expr *exp;
     struct callStruct *calls;
+    struct loopStruct *loops;
 }
 
 
@@ -66,10 +67,18 @@
 
 %type <intVal> ifprefix
 %type <intVal> elseprefix
+%type <intVal> whilecond
+%type <intVal> whilestart
+
+%type <intVal> M
+%type <intVal> N
+%type <loops> forprefix
 
 %token IF
 %token ELSE
 %token WHILE
+
+
 %token FOR
 %token <strVal> FUNCTION
 %token RETURN
@@ -919,15 +928,64 @@ ifstmt: ifprefix stmt   {
         }
     ;
 
-whilestmt: WHILE {loopFlag++;} LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt   {printf("while(expr) -> whilestmt\n"); loopFlag--;}
-    ;    
-
-forstmt: FOR {loopFlag++;} LEFT_PARENTHESIS elist SEMICOLON expr SEMICOLON elist RIGHT_PARENTHESIS stmt
-        {printf("for(elist;expr;elist)stmt -> forstmt\n"); loopFlag--;}
+whilestart: WHILE {loopFlag++; $$ = getcurrQuad();}
     ;
 
-returnstmt: RETURN expr SEMICOLON   {printf("return expr ; -> returnstmt\n");} 
-    |RETURN SEMICOLON    {printf("return ; -> returnstmt\n");}
+whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+        emit(if_eq, newExpr_constbool(1), NULL,  $2, getcurrQuad() + 2, yylineno);
+        $$ = getcurrQuad();
+        emit(jump, NULL, NULL, NULL, 0, yylineno);
+    }
+    ;
+
+whilestmt: whilestart whilecond stmt   {
+        printf("while(expr) -> whilestmt\n");
+        loopFlag--;
+        
+        emit(jump,NULL, NULL, NULL, $1, yylineno);
+        patchLabel($2, getcurrQuad());
+        //TODO: Patch list when implement break/continues
+        
+    }
+    ;    
+
+
+N: {$$ = getcurrQuad(); emit(jump, NULL, NULL, NULL, 0, yylineno);}
+;
+
+M: {$$ = getcurrQuad();}
+;
+
+forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
+    loopFlag++;
+    $$ = (loopStruct*)malloc(sizeof(loopStruct));
+    $$ -> test = $5;
+    $$ -> enter = getcurrQuad();
+    emit(if_eq, newExpr_constbool(1), NULL, $6, 0, yylineno);
+}
+
+
+forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
+            printf("for(elist;expr;elist)stmt -> forstmt\n"); 
+            loopFlag--;
+
+            patchLabel($1 -> enter, $5 + 1);
+            patchLabel($2, getcurrQuad());
+            patchLabel($5, $1 -> test);
+            patchLabel($7, $2 + 1);
+
+            //TODO: Patch list when implement break/continues
+        }
+    ;
+
+returnstmt: RETURN expr SEMICOLON   {
+        printf("return expr ; -> returnstmt\n");
+        emit(ret, NULL, NULL, $2, getcurrQuad() + 1, yylineno);
+    } 
+    |RETURN SEMICOLON    {
+        printf("return ; -> returnstmt\n");
+        emit(ret, NULL, NULL, NULL, getcurrQuad() + 1, yylineno);
+        }
     ;
 %%
 

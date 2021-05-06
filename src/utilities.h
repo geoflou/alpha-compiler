@@ -81,6 +81,11 @@ typedef struct callStruct{
     char* name;
 } callStruct;
 
+typedef struct loopStruct {
+    int test;
+    int enter;
+} loopStruct;
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
