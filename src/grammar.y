@@ -13,6 +13,8 @@
 
     int scope = 0;
 
+    int retquad = 0;
+
     char* currFunc;
 
     Expr* exprStack = (Expr *) 0;
@@ -27,6 +29,7 @@
     int loopFlag = 0;
     int funcFlag = 0;
     int memberflag = 0;
+
 %}
 
 %union{
@@ -36,6 +39,7 @@
     struct expr *exp;
     struct callStruct *calls;
     struct loopStruct *loops;
+    struct stmt_t *specials;
 }
 
 
@@ -73,6 +77,14 @@
 %type <intVal> M
 %type <intVal> N
 %type <loops> forprefix
+
+%type <specials> breakstmt;
+%type <specials> continuestmt;
+%type <specials> stmt;
+%type <specials> set;
+%type <specials> block;
+%type <specials> whilestmt;
+%type <specials> forstmt;
 
 %token IF
 %token ELSE
@@ -114,31 +126,66 @@ program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
     ;
 
-set: stmt
-    |set stmt
+set: stmt{
+        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+    }
+    |set stmt {
+        printf("set stmt -> set\n");
+        $$->breaklist = mergeList($1->breaklist,$2->breaklist);
+        $$->contlist = mergeList($1->contlist,$2->contlist);
+
+    }
     ;
 
+breakstmt: BREAK SEMICOLON{
+    printf("break; -> break\n");
+    if(loopFlag == 0) {
+                yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
+            }
+            $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+            makeStatement($$);
+            $$->breaklist = newList(getcurrQuad());
+            emit(jump,NULL,NULL,NULL,0,yylineno);
+}
+;
+
+continuestmt: CONTINUE SEMICOLON{
+    printf("continue; -> continue\n");
+    if(loopFlag == 0) {
+        yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
+    }
+    
+    $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+    makeStatement($$);
+    $$->contlist = newList(getcurrQuad());
+    emit(jump,NULL,NULL,NULL,0,yylineno);
+}
+;
 stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |ifstmt {printf("ifstmt -> stmt\n");}
-    |whilestmt  {printf("whilestmt -> stmt\n");}
-    |forstmt    {printf("forstmt -> stmt\n");}
+    |whilestmt  {
+        printf("whilestmt -> stmt\n"); 
+        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+    }
+    |forstmt    {
+        printf("forstmt -> stmt\n");
+        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+    }
     |returnstmt    {
                 printf("returnstmt -> stmt\n");
                 if(funcFlag == 0) {
                     yyerror("\033[31mERROR: return statement outside function\033[0m\t");
                 }
             }
-    |BREAK SEMICOLON    {
+    |breakstmt    {
             printf("break; -> stmt\n");
-            if(loopFlag == 0) {
-                yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
-            }
+            $$ = (specialKeywords*) malloc(sizeof(specialKeywords));
+            $$=$1;
         }
-    |CONTINUE SEMICOLON {
+    |continuestmt {
             printf("continue; -> stmt\n");
-            if(loopFlag == 0) {
-                yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
-            }
+            $$ = (specialKeywords*) malloc(sizeof(specialKeywords));
+            $$=$1;
         }
     |block  {printf("block -> stmt\n");}
     |funcdef    {printf("funcdef -> stmt\n");}
@@ -431,7 +478,7 @@ assignexpr: lvalue {
     }
     ;
 
-//TODO:Check $$ assignments
+
 primary: lvalue {printf("lvalue -> primary\n");
                     $$ = emit_ifTableItem($1, scope, yylineno);
     }
@@ -665,6 +712,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
         printf("block with stmts -> block\n");
         hideEntries(scope);
         scope--;
+        $$ = $3;
     } 
     |LEFT_BRACKET {scope++;} RIGHT_BRACKET   {
             printf("empty block -> block\n");
@@ -754,7 +802,9 @@ funcdef: FUNCTION ID {
         }
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        patchLabel(retquad, getcurrQuad());
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
+        
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
@@ -941,10 +991,10 @@ whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
 whilestmt: whilestart whilecond stmt   {
         printf("while(expr) -> whilestmt\n");
         loopFlag--;
-        
         emit(jump,NULL, NULL, NULL, $1, yylineno);
         patchLabel($2, getcurrQuad());
-        //TODO: Patch list when implement break/continues
+        patchList($3->breaklist,getcurrQuad());
+        patchList($3->contlist,$1);
         
     }
     ;    
@@ -974,17 +1024,23 @@ forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
             patchLabel($5, $1 -> test);
             patchLabel($7, $2 + 1);
 
-            //TODO: Patch list when implement break/continues
+            patchList($6->breaklist,getcurrQuad());
+            patchList($6->contlist,$2+1);
         }
     ;
 
 returnstmt: RETURN expr SEMICOLON   {
         printf("return expr ; -> returnstmt\n");
         emit(ret, NULL, NULL, $2, getcurrQuad() + 1, yylineno);
+        retquad = getcurrQuad();
+        emit(jump,NULL,NULL,NULL,0,yylineno);
     } 
     |RETURN SEMICOLON    {
         printf("return ; -> returnstmt\n");
         emit(ret, NULL, NULL, NULL, getcurrQuad() + 1, yylineno);
+        retquad = getcurrQuad();
+        emit(jump,NULL,NULL,NULL,0,yylineno);
+
         }
     ;
 %%
@@ -1009,7 +1065,6 @@ int main(int argc, char* argv[]){
     yyparse();
 
     //printEntries();
-
     printQuads();
 
     return 0;

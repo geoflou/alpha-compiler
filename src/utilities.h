@@ -86,6 +86,12 @@ typedef struct loopStruct {
     int enter;
 } loopStruct;
 
+typedef struct stmt_t{
+    int breaklist;
+    int contlist;
+    int retlist;
+}specialKeywords;
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
@@ -153,3 +159,11 @@ void patchLabel(unsigned int quadNo, unsigned int label);
 Expr* make_call(Expr* lvalue, Expr* e_list, int scope, int line);
 
 void emitReverse(Expr* head, int line);
+
+void makeStatement(specialKeywords* s);
+
+int newList(int i);
+
+int mergeList(int l1, int l2);
+
+void patchList(int list, int label);

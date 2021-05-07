@@ -550,3 +550,43 @@ void emitReverse(Expr* head, int line) {
     emit(param, NULL, NULL, head, getcurrQuad() + 1, line);
 
 }
+
+
+void makeStatement(specialKeywords* s){
+    s->breaklist = 0;
+    s->contlist = 0;
+    s->retlist = 0;
+}
+
+int newList(int i){
+    quads[i].label = 0;
+    return i;
+}
+
+int mergeList(int l1, int l2){
+    if(l1 == 0){
+        return l2;
+    }
+    else if(l2 == 0){
+        return l1;
+    }
+    else{
+        int i = l1;
+        while(quads[i].label){
+            i = quads[i].label;
+            i++;    
+        }
+        quads[i].label=l2;
+        return l1;
+    }
+}
+
+void patchList(int list, int label){
+    while(list){
+        int next = quads[list].label;
+        quads[list].label = label;
+        list = next;
+    printf("%d\n\n",quads[list].label);
+
+    }
+}
