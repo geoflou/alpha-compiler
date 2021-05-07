@@ -29,6 +29,7 @@
     int loopFlag = 0;
     int funcFlag = 0;
     int memberflag = 0;
+    int preFuncLoop = 0;
 
 %}
 
@@ -139,7 +140,7 @@ set: stmt{
 
 breakstmt: BREAK SEMICOLON{
     printf("break; -> break\n");
-    if(loopFlag == 0) {
+    if(loopFlag == 0 || preFuncLoop > 0) {
                 yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
             }
             $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
@@ -151,7 +152,7 @@ breakstmt: BREAK SEMICOLON{
 
 continuestmt: CONTINUE SEMICOLON{
     printf("continue; -> continue\n");
-    if(loopFlag == 0) {
+    if(loopFlag == 0 || preFuncLoop > 0) {
         yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
     }
     
@@ -723,6 +724,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
 
 funcdef: FUNCTION ID {
         funcFlag++;
+        if(loopFlag > 0) {preFuncLoop++;}
         insertOffsetStack(offsetStack, yylval.strVal);
 
         currFunc = strdup(yylval.strVal);
@@ -793,6 +795,7 @@ funcdef: FUNCTION ID {
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
+        if(preFuncLoop > 0) {preFuncLoop--;}
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
@@ -811,7 +814,7 @@ funcdef: FUNCTION ID {
     }
     |FUNCTION {
         funcFlag++;
-
+        if(loopFlag > 0) {preFuncLoop++;}
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
@@ -887,6 +890,7 @@ funcdef: FUNCTION ID {
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
+        if(preFuncLoop > 0) {preFuncLoop--;}
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);

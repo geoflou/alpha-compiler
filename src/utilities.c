@@ -586,7 +586,6 @@ void patchList(int list, int label){
         int next = quads[list].label;
         quads[list].label = label;
         list = next;
-    printf("%d\n\n",quads[list].label);
 
     }
 }
