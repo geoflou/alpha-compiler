@@ -176,6 +176,10 @@ void hideFromScopeLink(int scope){
     SymbolTableEntry *symbolIndex;
     ScopeNode* scopeIndex = scopes;
 
+    if(scope > currentMaxScope) {
+        return;
+    }
+
     while(scopeIndex != NULL && scopeIndex -> label != scope) {
         scopeIndex = scopeIndex -> next;
     }
