@@ -70,6 +70,7 @@ typedef struct quad {
 typedef struct offsetStack{
     char* name;
     unsigned int jumpQuad;
+    unsigned int activeLoops;
     unsigned int localVarOffset;
     unsigned int formalArgOffset;
     struct offsetStack* next; 
@@ -148,7 +149,7 @@ void restoreformalArgs(MinasTirithTouSpitiouMou* m);
 
 void restoreLocalVars(MinasTirithTouSpitiouMou* m);
 
-void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name);
+void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name, int activeLoops);
 
 MinasTirithTouSpitiouMou* popoffsetStack(MinasTirithTouSpitiouMou* m);
 

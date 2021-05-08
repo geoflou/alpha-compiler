@@ -29,7 +29,6 @@
     int loopFlag = 0;
     int funcFlag = 0;
     int memberflag = 0;
-    int preFuncLoop = 0;
 
 %}
 
@@ -40,7 +39,6 @@
     struct expr *exp;
     struct callStruct *calls;
     struct loopStruct *loops;
-    struct stmt_t *specials;
 }
 
 
@@ -79,13 +77,6 @@
 %type <intVal> N
 %type <loops> forprefix
 
-%type <specials> breakstmt;
-%type <specials> continuestmt;
-%type <specials> stmt;
-%type <specials> set;
-%type <specials> block;
-%type <specials> whilestmt;
-%type <specials> forstmt;
 
 %token IF
 %token ELSE
@@ -128,49 +119,49 @@ program: set   {printf("set -> program\n");}
     ;
 
 set: stmt{
-        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |set stmt {
         printf("set stmt -> set\n");
-        $$->breaklist = mergeList($1->breaklist,$2->breaklist);
-        $$->contlist = mergeList($1->contlist,$2->contlist);
+        //$$->breaklist = mergeList($1->breaklist,$2->breaklist);
+        //$$->contlist = mergeList($1->contlist,$2->contlist);
 
     }
     ;
 
 breakstmt: BREAK SEMICOLON{
     printf("break; -> break\n");
-    if(loopFlag == 0 || preFuncLoop > 0) {
-                yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
-            }
-            $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-            makeStatement($$);
-            $$->breaklist = newList(getcurrQuad());
-            emit(jump,NULL,NULL,NULL,0,yylineno);
+    if(loopFlag == 0) {
+        yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
+    }
+            //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+           // makeStatement($$);
+           // $$->breaklist = newList(getcurrQuad());
+            //emit(jump,NULL,NULL,NULL,0,yylineno);
 }
 ;
 
 continuestmt: CONTINUE SEMICOLON{
     printf("continue; -> continue\n");
-    if(loopFlag == 0 || preFuncLoop > 0) {
+    if(loopFlag == 0) {
         yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
     }
     
-    $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-    makeStatement($$);
-    $$->contlist = newList(getcurrQuad());
-    emit(jump,NULL,NULL,NULL,0,yylineno);
+   // $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+   // makeStatement($$);
+    //$$->contlist = newList(getcurrQuad());
+    //emit(jump,NULL,NULL,NULL,0,yylineno);
 }
 ;
 stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |ifstmt {printf("ifstmt -> stmt\n");}
     |whilestmt  {
         printf("whilestmt -> stmt\n"); 
-        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |forstmt    {
         printf("forstmt -> stmt\n");
-        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |returnstmt    {
                 printf("returnstmt -> stmt\n");
@@ -180,13 +171,13 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
             }
     |breakstmt    {
             printf("break; -> stmt\n");
-            $$ = (specialKeywords*) malloc(sizeof(specialKeywords));
-            $$=$1;
+            //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
+            //$$=$1;
         }
     |continuestmt {
             printf("continue; -> stmt\n");
-            $$ = (specialKeywords*) malloc(sizeof(specialKeywords));
-            $$=$1;
+            //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
+            //$$=$1;
         }
     |block  {printf("block -> stmt\n");}
     |funcdef    {printf("funcdef -> stmt\n");}
@@ -713,7 +704,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
         printf("block with stmts -> block\n");
         hideEntries(scope);
         scope--;
-        $$ = $3;
+        //$$ = $3;
     } 
     |LEFT_BRACKET {scope++;} RIGHT_BRACKET   {
             printf("empty block -> block\n");
@@ -724,9 +715,8 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
 
 funcdef: FUNCTION ID {
         funcFlag++;
-        if(loopFlag > 0) {preFuncLoop++;}
-        insertOffsetStack(offsetStack, yylval.strVal);
-
+        insertOffsetStack(offsetStack, yylval.strVal, loopFlag);
+        loopFlag = 0;
         currFunc = strdup(yylval.strVal);
         temp_func -> name = yylval.strVal;
         temp_func -> scope = scope;
@@ -795,31 +785,29 @@ funcdef: FUNCTION ID {
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
         funcFlag--;
-        if(preFuncLoop > 0) {preFuncLoop--;}
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
+            loopFlag = tmp -> activeLoops;
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
         }
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
-        patchLabel(retquad, getcurrQuad());
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
-        
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
     }
     |FUNCTION {
         funcFlag++;
-        if(loopFlag > 0) {preFuncLoop++;}
         char* fname = (char*) malloc(sizeof(char)*50);
         sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
         anonFuncCounter++;
-        insertOffsetStack(offsetStack, fname);
+        insertOffsetStack(offsetStack, fname, loopFlag);
+        loopFlag = 0;
         temp_func -> scope = scope;
         temp_func -> line = yylineno;
         temp_func -> name = fname;
@@ -890,11 +878,11 @@ funcdef: FUNCTION ID {
     } block    {
         printf("function (idlist)block -> funcdef\n");
         funcFlag--;
-        if(preFuncLoop > 0) {preFuncLoop--;}
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
             lushAlex -> symbol = lookupScope(tmp -> name, scope);
+            loopFlag = tmp -> activeLoops;
             restoreformalArgs(tmp);
             restoreLocalVars(tmp);
         }
@@ -997,8 +985,8 @@ whilestmt: whilestart whilecond stmt   {
         loopFlag--;
         emit(jump,NULL, NULL, NULL, $1, yylineno);
         patchLabel($2, getcurrQuad());
-        patchList($3->breaklist,getcurrQuad());
-        patchList($3->contlist,$1);
+        //patchList($3->breaklist,getcurrQuad());
+        //patchList($3->contlist,$1);
         
     }
     ;    
@@ -1028,8 +1016,8 @@ forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
             patchLabel($5, $1 -> test);
             patchLabel($7, $2 + 1);
 
-            patchList($6->breaklist,getcurrQuad());
-            patchList($6->contlist,$2+1);
+            //patchList($6->breaklist,getcurrQuad());
+            //patchList($6->contlist,$2+1);
         }
     ;
 

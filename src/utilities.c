@@ -490,11 +490,12 @@ void restoreLocalVars(MinasTirithTouSpitiouMou* m) {
     functionLocalOffset = m->localVarOffset;
 }
 
-void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name) {
+void insertOffsetStack(MinasTirithTouSpitiouMou* m, char* name, int activeLoops) {
     MinasTirithTouSpitiouMou* newnode = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
     newnode -> localVarOffset = functionLocalOffset;
     newnode -> formalArgOffset = formalArgOffset;
     newnode -> jumpQuad = getcurrQuad();
+    newnode -> activeLoops = activeLoops;
     newnode -> name = name;
     newnode -> next = NULL;
     if(m->next == NULL) {
@@ -573,10 +574,9 @@ int mergeList(int l1, int l2){
     else{
         int i = l1;
         while(quads[i].label){
-            i = quads[i].label;
-            i++;    
+            i = quads[i].label; 
+            quads[i].label=l2;
         }
-        quads[i].label=l2;
         return l1;
     }
 }
