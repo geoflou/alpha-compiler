@@ -581,11 +581,51 @@ int mergeList(int l1, int l2){
     }
 }
 
-void patchList(int list, int label){
-    while(list != 0){
-        int next = quads[list].label;
-        quads[list].label = label;
-        list = next;
-
+void patchList(loopStmt* head, int label, int loopScope){
+    loopStmt* index, *tmp;
+    tmp = (loopStmt*)malloc(sizeof(loopStmt));
+    index = head;
+    while(index != NULL) {
+        printf("quadNo, label %d, %d\n", index -> quadNo, index -> loopScope);
+        if(index -> loopScope == loopScope) {
+            patchLabel(index -> quadNo, label);
+        }
+        index = index -> next;
     }
+    return;
+}
+
+void insertLoopStmt(int quadNo, int loopScope, loopStmt* head) {
+    loopStmt* newNode = (loopStmt *)malloc(sizeof(loopStmt));
+    
+    newNode -> quadNo = quadNo;
+    newNode -> loopScope = loopScope;
+    newNode -> next = NULL;
+
+    if(head == NULL) {
+        head = newNode;
+        return;
+    }
+
+    newNode -> next = head -> next;
+    head -> next = newNode;
+    return;
+}
+
+loopStmt* popLoopStmt(loopStmt* head, int loopFlagNo) {
+    loopStmt* out = (loopStmt*) malloc(sizeof(loopStmt));
+    
+    if(head == NULL) {
+        return NULL;
+    }
+
+    if(head -> loopScope != loopFlagNo) {
+        return NULL;
+    }
+
+    out = head -> next;
+    head -> next = out-> next;
+    out -> next = NULL;
+
+    return out;
 }

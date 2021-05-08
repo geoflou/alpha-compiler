@@ -18,6 +18,7 @@
     char* currFunc;
 
     Expr* exprStack = (Expr *) 0;
+    loopStmt* breakStack = (loopStmt *) 0;
 
     MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
 
@@ -79,12 +80,6 @@
 
 %type <loops> forprefix
 
-%type <specials> breakstmt
-%type <specials> set
-%type <specials> whilestmt
-%type <specials> stmt
-%type <specials> block
-%type <specials> ifstmt
 
 %token IF
 %token ELSE
@@ -126,16 +121,8 @@ program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
     ;
 
-set: stmt {
-        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-        $$ = $1;
-    }
-    |set stmt {
-        printf("set stmt -> set\n");
-        $$ -> breaklist = mergeList($1 -> breaklist, $2 -> breaklist);
-        //$$->contlist = mergeList($1->contlist,$2->contlist);
-
-    }
+set: stmt
+    |set stmt {printf("set stmt -> set\n");}
     ;
 
 breakstmt: BREAK SEMICOLON{
@@ -143,9 +130,7 @@ breakstmt: BREAK SEMICOLON{
     if(loopFlag == 0) {
         yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
     }
-    $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-    makeStatement($$);
-    $$ -> breaklist = newList(getcurrQuad());
+    insertLoopStmt(getcurrQuad(), loopFlag, breakStack);
     emit(jump, NULL, NULL, NULL, 0, yylineno);
 }
 ;
@@ -163,14 +148,12 @@ continuestmt: CONTINUE SEMICOLON{
 }
 ;
 stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
-    |ifstmt {printf("ifstmt -> stmt\n");$$ = (specialKeywords*)malloc(sizeof(specialKeywords));}
+    |ifstmt {printf("ifstmt -> stmt\n");}
     |whilestmt  {
         printf("whilestmt -> stmt\n"); 
-        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |forstmt    {
         printf("forstmt -> stmt\n");
-        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |returnstmt    {
                 printf("returnstmt -> stmt\n");
@@ -180,15 +163,11 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
             }
     |breakstmt    {
             printf("break; -> stmt\n");
-            //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
-            $$ = $1;
         }
     |continuestmt {
             printf("continue; -> stmt\n");
-            //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
-            //$$=$1;
         }
-    |block  {printf("block -> stmt\n"); $$ = $1;}
+    |block  {printf("block -> stmt\n");}
     |funcdef    {printf("funcdef -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
@@ -713,7 +692,6 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
         printf("block with stmts -> block\n");
         hideEntries(scope);
         scope--;
-        $$ = $3;
     } 
     |LEFT_BRACKET {scope++;} RIGHT_BRACKET   {
             printf("empty block -> block\n");
@@ -991,13 +969,13 @@ whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
 
 whilestmt: whilestart whilecond stmt   {
         printf("while(expr) -> whilestmt\n");
-        loopFlag--;
         emit(jump, NULL, NULL, NULL, $1, yylineno);
         patchLabel($2, getcurrQuad());
 
-        patchList($3 -> breaklist, getcurrQuad());
+        patchList(breakStack -> next, getcurrQuad(), loopFlag);
         //patchList($3->contlist,$1);
-        
+        loopFlag--;
+
     }
     ;    
 
@@ -1057,10 +1035,14 @@ int main(int argc, char* argv[]){
     temp_func = (Function *)malloc(sizeof(Function));
     temp_func -> arguments =(char**)malloc(10*sizeof(char*));
     exprStack = (Expr*)malloc(sizeof(Expr));
+
     offsetStack = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
     lushAlex = (Expr*)malloc(sizeof(Expr));
     exprStack -> next = NULL;
     offsetStack-> next = NULL;
+
+    breakStack = (loopStmt*) malloc(sizeof(loopStmt));
+    breakStack -> next = NULL;
 
     initTable();
 

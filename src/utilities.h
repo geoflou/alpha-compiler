@@ -93,6 +93,12 @@ typedef struct stmt_t{
     int retlist;
 }specialKeywords;
 
+typedef struct loop_stmt {
+    int loopScope;
+    int quadNo;
+    struct loop_stmt * next;
+} loopStmt;
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
@@ -167,4 +173,9 @@ int newList(int i);
 
 int mergeList(int l1, int l2);
 
-void patchList(int list, int label);
+void patchList(loopStmt* list, int label, int loopScope);
+
+void insertLoopStmt(int quadNo, int loopScope, loopStmt* head);
+
+loopStmt* popLoopStmt(loopStmt* head, int loopFlagNo);
+
