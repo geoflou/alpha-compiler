@@ -39,6 +39,7 @@
     struct expr *exp;
     struct callStruct *calls;
     struct loopStruct *loops;
+    struct stmt_t *specials;
 }
 
 
@@ -75,8 +76,15 @@
 
 %type <intVal> M
 %type <intVal> N
+
 %type <loops> forprefix
 
+%type <specials> breakstmt
+%type <specials> set
+%type <specials> whilestmt
+%type <specials> stmt
+%type <specials> block
+%type <specials> ifstmt
 
 %token IF
 %token ELSE
@@ -118,12 +126,13 @@ program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
     ;
 
-set: stmt{
-        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+set: stmt {
+        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+        $$ = $1;
     }
     |set stmt {
         printf("set stmt -> set\n");
-        //$$->breaklist = mergeList($1->breaklist,$2->breaklist);
+        $$ -> breaklist = mergeList($1 -> breaklist, $2 -> breaklist);
         //$$->contlist = mergeList($1->contlist,$2->contlist);
 
     }
@@ -134,10 +143,10 @@ breakstmt: BREAK SEMICOLON{
     if(loopFlag == 0) {
         yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
     }
-            //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-           // makeStatement($$);
-           // $$->breaklist = newList(getcurrQuad());
-            //emit(jump,NULL,NULL,NULL,0,yylineno);
+    $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+    makeStatement($$);
+    $$ -> breaklist = newList(getcurrQuad());
+    emit(jump, NULL, NULL, NULL, 0, yylineno);
 }
 ;
 
@@ -154,10 +163,10 @@ continuestmt: CONTINUE SEMICOLON{
 }
 ;
 stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
-    |ifstmt {printf("ifstmt -> stmt\n");}
+    |ifstmt {printf("ifstmt -> stmt\n");$$ = (specialKeywords*)malloc(sizeof(specialKeywords));}
     |whilestmt  {
         printf("whilestmt -> stmt\n"); 
-        //$$ = (specialKeywords*)malloc(sizeof(specialKeywords));
+        $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
     }
     |forstmt    {
         printf("forstmt -> stmt\n");
@@ -172,14 +181,14 @@ stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
     |breakstmt    {
             printf("break; -> stmt\n");
             //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
-            //$$=$1;
+            $$ = $1;
         }
     |continuestmt {
             printf("continue; -> stmt\n");
             //$$ = (specialKeywords*) malloc(sizeof(specialKeywords));
             //$$=$1;
         }
-    |block  {printf("block -> stmt\n");}
+    |block  {printf("block -> stmt\n"); $$ = $1;}
     |funcdef    {printf("funcdef -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
@@ -704,7 +713,7 @@ block: LEFT_BRACKET {scope++;} set RIGHT_BRACKET {
         printf("block with stmts -> block\n");
         hideEntries(scope);
         scope--;
-        //$$ = $3;
+        $$ = $3;
     } 
     |LEFT_BRACKET {scope++;} RIGHT_BRACKET   {
             printf("empty block -> block\n");
@@ -983,9 +992,10 @@ whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
 whilestmt: whilestart whilecond stmt   {
         printf("while(expr) -> whilestmt\n");
         loopFlag--;
-        emit(jump,NULL, NULL, NULL, $1, yylineno);
+        emit(jump, NULL, NULL, NULL, $1, yylineno);
         patchLabel($2, getcurrQuad());
-        //patchList($3->breaklist,getcurrQuad());
+
+        patchList($3 -> breaklist, getcurrQuad());
         //patchList($3->contlist,$1);
         
     }

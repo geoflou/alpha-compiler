@@ -573,16 +573,16 @@ int mergeList(int l1, int l2){
     }
     else{
         int i = l1;
-        while(quads[i].label){
-            i = quads[i].label; 
-            quads[i].label=l2;
+        while(quads[i].label != 0){
+            i = quads[i].label;
         }
+        quads[i].label = l2;
         return l1;
     }
 }
 
 void patchList(int list, int label){
-    while(list){
+    while(list != 0){
         int next = quads[list].label;
         quads[list].label = label;
         list = next;
