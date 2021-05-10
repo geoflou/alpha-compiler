@@ -781,6 +781,7 @@ funcdef: FUNCTION ID {
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
         patchList(retStack -> next, getcurrQuad(), funcFlag);
+        popSpecialScope(retStack, funcFlag);
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
@@ -873,9 +874,10 @@ funcdef: FUNCTION ID {
             restoreLocalVars(tmp);
         }
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
-        updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        updateEntry(getEntryName(lushAlex -> symbol), currScopeOffset(), getEntryScope(lushAlex -> symbol));
         patchList(retStack -> next, getcurrQuad(), funcFlag);
-        emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
+        popSpecialScope(retStack, funcFlag);
+        emit(funcend, NULL, NULL , $$, getcurrQuad() + 1, yylineno);
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
@@ -975,6 +977,8 @@ whilestmt: whilestart whilecond stmt   {
 
         patchList(breakStack -> next, getcurrQuad(), loopFlag);
         patchList(continueStack -> next, $1, loopFlag);
+        popSpecialScope(continueStack, loopFlag);
+        popSpecialScope(breakStack, loopFlag);
         loopFlag--;
 
     }
@@ -1006,6 +1010,8 @@ forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
 
             patchList(breakStack -> next,getcurrQuad(), loopFlag);
             patchList(continueStack -> next , $2 + 1, loopFlag);
+            popSpecialScope(continueStack, loopFlag);
+            popSpecialScope(breakStack, loopFlag);
             loopFlag--;
         }
     ;
@@ -1054,6 +1060,7 @@ int main(int argc, char* argv[]){
     yyparse();
 
     //printEntries();
+    
     printQuads();
 
     return 0;

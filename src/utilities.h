@@ -169,15 +169,10 @@ Expr* make_call(Expr* lvalue, Expr* e_list, int scope, int line);
 
 void emitReverse(Expr* head, int line);
 
-void makeStatement(specialKeywords* s);
-
-int newList(int i);
-
-int mergeList(int l1, int l2);
-
-void patchList(specialStmt* list, int label, int loopScope);
+void patchList(specialStmt* list, int label, int specialScope);
 
 void insertSpecialStmt(int quadNo, int specialScope, specialStmt* head);
 
-specialStmt* popSpecialStmt(specialStmt* head, int loopFlagNo);
+specialStmt* popSpecialStmt(specialStmt* head, int flag);
 
+void popSpecialScope(specialStmt* head, int flag);

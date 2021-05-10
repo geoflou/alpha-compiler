@@ -570,35 +570,6 @@ void emitReverse(Expr* head, int line) {
 
 }
 
-
-void makeStatement(specialKeywords* s){
-    s->breaklist = 0;
-    s->contlist = 0;
-    s->retlist = 0;
-}
-
-int newList(int i){
-    quads[i].label = 0;
-    return i;
-}
-
-int mergeList(int l1, int l2){
-    if(l1 == 0){
-        return l2;
-    }
-    else if(l2 == 0){
-        return l1;
-    }
-    else{
-        int i = l1;
-        while(quads[i].label != 0){
-            i = quads[i].label;
-        }
-        quads[i].label = l2;
-        return l1;
-    }
-}
-
 void patchList(specialStmt* head, int label, int specialScope){
     specialStmt* index;
     index = head;
@@ -628,19 +599,40 @@ void insertSpecialStmt(int quadNo, int specialScope, specialStmt* head) {
     return;
 }
 
+
+void popSpecialScope(specialStmt* head, int flag) {
+    specialStmt* poped = (specialStmt*)malloc(sizeof(specialStmt));
+    specialStmt* index = (specialStmt*)malloc(sizeof(specialStmt));
+
+
+    index = head -> next;
+    while (index != NULL) {
+        poped = popSpecialStmt(head, flag);
+        if(poped == NULL) {
+            break;
+        }
+        index = head -> next;
+    }
+
+    return;
+    
+}
+
+
 specialStmt* popSpecialStmt(specialStmt* head, int flag) {
     specialStmt* out = (specialStmt*) malloc(sizeof(specialStmt));
-    
-    if(head == NULL) {
+
+    assert(head != NULL);
+    if(head -> next == NULL) {
         return NULL;
     }
 
-    if(head -> specialScope != flag) {
+    if(head -> next ->  specialScope != flag) {
         return NULL;
     }
 
     out = head -> next;
-    head -> next = out-> next;
+    head -> next  = out-> next;
     out -> next = NULL;
 
     return out;
