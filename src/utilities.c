@@ -387,15 +387,15 @@ char* getExpr(Expr* e) {
 void printQuads(void) {
     int i = 0;
     quad *index;
-    printf("\033[0;35mQUAD# \t OPCODE \t \t RESULT \t ARG1 \t ARG2 \t LABEL\033[0m\n");
-    printf("=============================================================================================\n");
+    printf("\033[0;35mQUAD# \t OPCODE \t RESULT \t ARG1 \t\t ARG2 \t\tLABEL\033[0m\n");
+    printf("====================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
         if(isJumpLabel(index)) {
-            printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getExpr(index -> result), 
+            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i, getOpCode(index), getExpr(index -> result), 
             getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
         } else {
-            printf("#%d \t %s \t\t %s \t\t %s \t %s \t\n", i, getOpCode(index), getExpr(index -> result), 
+            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s\n", i, getOpCode(index), getExpr(index -> result), 
             getExpr(index -> arg1), getExpr(index -> arg2));
         }
         
