@@ -63,7 +63,7 @@ typedef struct quad {
     Expr *arg1;
     Expr *arg2;
     Expr *result;
-    unsigned label;
+    int label;
     unsigned line;
 } quad;
 
@@ -93,11 +93,11 @@ typedef struct stmt_t{
     int retlist;
 }specialKeywords;
 
-typedef struct loop_stmt {
-    int loopScope;
+typedef struct special_stmt {
+    int specialScope;
     int quadNo;
-    struct loop_stmt * next;
-} loopStmt;
+    struct special_stmt * next;
+} specialStmt;
 
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
@@ -111,7 +111,7 @@ void insertFormal(char* name, int scope, int line);
 
 void expand(void);
 
-void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, unsigned label, unsigned line);
+void emit(enum iopcode op, Expr* arg1, Expr* arg2, Expr* result, int label, unsigned line);
 
 unsigned currScopeOffset(void);
 
@@ -136,6 +136,8 @@ Expr* newExpr_constbool(unsigned char b);
 Expr* newExpr_constnum(double s);
 
 void printQuads(void);
+
+int isJumpLabel(quad* q);
 
 char* getOpCode(quad* q);
 
@@ -173,9 +175,9 @@ int newList(int i);
 
 int mergeList(int l1, int l2);
 
-void patchList(loopStmt* list, int label, int loopScope);
+void patchList(specialStmt* list, int label, int loopScope);
 
-void insertLoopStmt(int quadNo, int loopScope, loopStmt* head);
+void insertSpecialStmt(int quadNo, int specialScope, specialStmt* head);
 
-loopStmt* popLoopStmt(loopStmt* head, int loopFlagNo);
+specialStmt* popSpecialStmt(specialStmt* head, int loopFlagNo);
 

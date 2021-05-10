@@ -152,7 +152,7 @@ void expand(void) {
     return;
 }
 
-void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, unsigned label, unsigned line) {
+void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, int label, unsigned line) {
     if (currQuad == total) {
         expand();
     }
@@ -391,14 +391,32 @@ void printQuads(void) {
     printf("=============================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
-        printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getExpr(index -> result), 
+        if(isJumpLabel(index)) {
+            printf("#%d \t %s \t\t %s \t\t %s \t %s \t %d \n", i, getOpCode(index), getExpr(index -> result), 
             getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
+        } else {
+            printf("#%d \t %s \t\t %s \t\t %s \t %s \t\n", i, getOpCode(index), getExpr(index -> result), 
+            getExpr(index -> arg1), getExpr(index -> arg2));
+        }
+        
         i++;
     }
     printf("\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
     printf("\033[32;1mlocal var offset is : %d\033[0m\n", functionLocalOffset);
     printf("\033[32;1mformal args offset is : %d\033[0m\n", formalArgOffset);
     
+}
+
+int isJumpLabel(quad* q) {
+    int result = 0;
+
+    if(q -> op != jump && q -> op != if_eq && q -> op != if_noteq &&
+        q -> op != if_lesseq && q -> op != if_greater && q -> op != if_less
+        && q -> op != if_greater) {
+            return 0;
+        }
+
+    return 1;
 }
 
 
@@ -581,13 +599,11 @@ int mergeList(int l1, int l2){
     }
 }
 
-void patchList(loopStmt* head, int label, int loopScope){
-    loopStmt* index, *tmp;
-    tmp = (loopStmt*)malloc(sizeof(loopStmt));
+void patchList(specialStmt* head, int label, int specialScope){
+    specialStmt* index;
     index = head;
     while(index != NULL) {
-        printf("quadNo, label %d, %d\n", index -> quadNo, index -> loopScope);
-        if(index -> loopScope == loopScope) {
+        if(index -> specialScope == specialScope) {
             patchLabel(index -> quadNo, label);
         }
         index = index -> next;
@@ -595,11 +611,11 @@ void patchList(loopStmt* head, int label, int loopScope){
     return;
 }
 
-void insertLoopStmt(int quadNo, int loopScope, loopStmt* head) {
-    loopStmt* newNode = (loopStmt *)malloc(sizeof(loopStmt));
+void insertSpecialStmt(int quadNo, int specialScope, specialStmt* head) {
+    specialStmt* newNode = (specialStmt *)malloc(sizeof(specialStmt));
     
     newNode -> quadNo = quadNo;
-    newNode -> loopScope = loopScope;
+    newNode -> specialScope = specialScope;
     newNode -> next = NULL;
 
     if(head == NULL) {
@@ -612,14 +628,14 @@ void insertLoopStmt(int quadNo, int loopScope, loopStmt* head) {
     return;
 }
 
-loopStmt* popLoopStmt(loopStmt* head, int loopFlagNo) {
-    loopStmt* out = (loopStmt*) malloc(sizeof(loopStmt));
+specialStmt* popSpecialStmt(specialStmt* head, int flag) {
+    specialStmt* out = (specialStmt*) malloc(sizeof(specialStmt));
     
     if(head == NULL) {
         return NULL;
     }
 
-    if(head -> loopScope != loopFlagNo) {
+    if(head -> specialScope != flag) {
         return NULL;
     }
 

@@ -18,7 +18,9 @@
     char* currFunc;
 
     Expr* exprStack = (Expr *) 0;
-    loopStmt* breakStack = (loopStmt *) 0;
+    specialStmt* breakStack = (specialStmt *) 0;
+    specialStmt* continueStack = (specialStmt *) 0;
+    specialStmt* retStack = (specialStmt *) 0;
 
     MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
 
@@ -40,7 +42,6 @@
     struct expr *exp;
     struct callStruct *calls;
     struct loopStruct *loops;
-    struct stmt_t *specials;
 }
 
 
@@ -130,7 +131,7 @@ breakstmt: BREAK SEMICOLON{
     if(loopFlag == 0) {
         yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
     }
-    insertLoopStmt(getcurrQuad(), loopFlag, breakStack);
+    insertSpecialStmt(getcurrQuad(), loopFlag, breakStack);
     emit(jump, NULL, NULL, NULL, 0, yylineno);
 }
 ;
@@ -141,10 +142,8 @@ continuestmt: CONTINUE SEMICOLON{
         yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
     }
     
-   // $$ = (specialKeywords*)malloc(sizeof(specialKeywords));
-   // makeStatement($$);
-    //$$->contlist = newList(getcurrQuad());
-    //emit(jump,NULL,NULL,NULL,0,yylineno);
+    insertSpecialStmt(getcurrQuad(), loopFlag, continueStack);
+    emit(jump,NULL,NULL,NULL,0,yylineno);
 }
 ;
 stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
@@ -771,7 +770,6 @@ funcdef: FUNCTION ID {
     }
     block    {
         printf("function id(idlist)block -> funcdef\n", yytext);
-        funcFlag--;
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
@@ -782,10 +780,12 @@ funcdef: FUNCTION ID {
         }
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        patchList(retStack -> next, getcurrQuad(), funcFlag);
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
+        funcFlag--;
     }
     |FUNCTION {
         funcFlag++;
@@ -864,7 +864,6 @@ funcdef: FUNCTION ID {
 
     } block    {
         printf("function (idlist)block -> funcdef\n");
-        funcFlag--;
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
@@ -875,10 +874,12 @@ funcdef: FUNCTION ID {
         }
         $$ = lvalue_expr(lushAlex -> symbol, scope, yylineno);
         updateEntry(getEntryName(lushAlex->symbol),currScopeOffset(), getEntryScope(lushAlex->symbol));
+        patchList(retStack -> next, getcurrQuad(), funcFlag);
         emit(funcend,NULL, NULL,$$,getcurrQuad()+1, yylineno);
         patchLabel(tmp -> jumpQuad, getcurrQuad());
         exitScopeSpace();
         exitScopeSpace();
+        funcFlag--;
     }
     ;
 
@@ -973,7 +974,7 @@ whilestmt: whilestart whilecond stmt   {
         patchLabel($2, getcurrQuad());
 
         patchList(breakStack -> next, getcurrQuad(), loopFlag);
-        //patchList($3->contlist,$1);
+        patchList(continueStack -> next, $1, loopFlag);
         loopFlag--;
 
     }
@@ -997,28 +998,28 @@ forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
 
 forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
             printf("for(elist;expr;elist)stmt -> forstmt\n"); 
-            loopFlag--;
 
             patchLabel($1 -> enter, $5 + 1);
             patchLabel($2, getcurrQuad());
             patchLabel($5, $1 -> test);
             patchLabel($7, $2 + 1);
 
-            //patchList($6->breaklist,getcurrQuad());
-            //patchList($6->contlist,$2+1);
+            patchList(breakStack -> next,getcurrQuad(), loopFlag);
+            patchList(continueStack -> next , $2 + 1, loopFlag);
+            loopFlag--;
         }
     ;
 
 returnstmt: RETURN expr SEMICOLON   {
         printf("return expr ; -> returnstmt\n");
         emit(ret, NULL, NULL, $2, getcurrQuad() + 1, yylineno);
-        retquad = getcurrQuad();
+        insertSpecialStmt(getcurrQuad(), funcFlag, retStack);
         emit(jump,NULL,NULL,NULL,0,yylineno);
     } 
     |RETURN SEMICOLON    {
         printf("return ; -> returnstmt\n");
         emit(ret, NULL, NULL, NULL, getcurrQuad() + 1, yylineno);
-        retquad = getcurrQuad();
+        insertSpecialStmt(getcurrQuad(), funcFlag, retStack);
         emit(jump,NULL,NULL,NULL,0,yylineno);
 
         }
@@ -1041,8 +1042,12 @@ int main(int argc, char* argv[]){
     exprStack -> next = NULL;
     offsetStack-> next = NULL;
 
-    breakStack = (loopStmt*) malloc(sizeof(loopStmt));
+    breakStack = (specialStmt*) malloc(sizeof(specialStmt));
     breakStack -> next = NULL;
+    continueStack = (specialStmt*) malloc(sizeof(specialStmt));
+    continueStack -> next = NULL;
+    retStack = (specialStmt*) malloc(sizeof(specialStmt));
+    retStack -> next = NULL;
 
     initTable();
 
