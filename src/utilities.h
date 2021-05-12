@@ -87,17 +87,17 @@ typedef struct loopStruct {
     int enter;
 } loopStruct;
 
-typedef struct stmt_t{
-    int breaklist;
-    int contlist;
-    int retlist;
-}specialKeywords;
-
 typedef struct special_stmt {
     int specialScope;
     int quadNo;
     struct special_stmt * next;
 } specialStmt;
+
+typedef struct bool_stmt {
+    int quadNo;
+    int label;
+    struct bool_stmt* next;
+} boolStmt;
 
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
@@ -176,3 +176,13 @@ void insertSpecialStmt(int quadNo, int specialScope, specialStmt* head);
 specialStmt* popSpecialStmt(specialStmt* head, int flag);
 
 void popSpecialScope(specialStmt* head, int flag);
+
+void insertBoolStmt(int quadNo, boolStmt* head);
+
+void patchBoolList(int label, boolStmt* head);
+
+void emptyBoolList(boolStmt* head);
+
+boolStmt* popBoolStmt(boolStmt* head);
+
+int isEmptyBoolList(boolStmt* head);

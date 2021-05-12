@@ -18,9 +18,13 @@
     char* currFunc;
 
     Expr* exprStack = (Expr *) 0;
+
     specialStmt* breakStack = (specialStmt *) 0;
     specialStmt* continueStack = (specialStmt *) 0;
     specialStmt* retStack = (specialStmt *) 0;
+
+    boolStmt* trueList = (boolStmt *) 0;
+    boolStmt* falseList = (boolStmt *) 0;
 
     MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
 
@@ -117,6 +121,9 @@
 
 %left DOT DOUBLE_DOT    
 
+
+//TODO: expression boolean value
+
 %%
 program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
@@ -146,7 +153,18 @@ continuestmt: CONTINUE SEMICOLON{
     emit(jump,NULL,NULL,NULL,0,yylineno);
 }
 ;
-stmt: expr SEMICOLON    {printf("expr ; -> stmt\n");}
+stmt: expr SEMICOLON    {
+        printf("expr ; -> stmt\n");
+        if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
+            patchBoolList(getcurrQuad(), trueList -> next);
+            patchBoolList(getcurrQuad() + 2, falseList -> next);
+            emit(assign, newExpr_constbool(1), NULL, $1, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $1, getcurrQuad() + 1, yylineno);
+            emptyBoolList(trueList);
+            emptyBoolList(falseList);
+        }
+    }
     |ifstmt {printf("ifstmt -> stmt\n");}
     |whilestmt  {
         printf("whilestmt -> stmt\n"); 
@@ -185,12 +203,14 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         emit(sub, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
     | expr OPERATOR_MOD expr    {
-        printf("expr %% expr -> expr\n");$$ = newExpr(arithexpr_e);
+        printf("expr %% expr -> expr\n");
+        $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(mod, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
     | expr OPERATOR_DIV expr    {
-        printf("expr / expr -> expr\n");$$ = newExpr(arithexpr_e);
+        printf("expr / expr -> expr\n");
+        $$ = newExpr(arithexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(divide, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
@@ -205,68 +225,76 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_greater, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_greater, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_GRE expr    {
             printf("expr >= expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_greatereq, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_greatereq, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_LES expr    {
             printf("expr < expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_less, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_less, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_LEE expr    {
             printf("expr <= expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_lesseq, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_lesseq, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_EQ expr 	{
             printf("expr == expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_eq, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_eq, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_NEQ expr    {
             printf("expr != expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
-            emit(if_noteq, $1, $3, $$, getcurrQuad() + 3, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            insertBoolStmt(getcurrQuad(), trueList);
+            emit(if_noteq, $1, $3, NULL, 0, yylineno);
+
+            insertBoolStmt(getcurrQuad(), falseList);
+            emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr AND expr    		{
+        //TODO: THIS
         printf("expr and expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         emit(and, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
     | expr OR expr 		{
+        //TODO: THIS
         printf("expr or expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
@@ -290,6 +318,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
         }
     }
     |NOT expr  		{
+            //TODO: swap truelist with false list
             printf("not expr -> term\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
@@ -440,6 +469,15 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
+            if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
+                patchBoolList(getcurrQuad(), trueList -> next);
+                patchBoolList(getcurrQuad() + 2, falseList -> next);
+                emit(assign, newExpr_constbool(1), NULL, $1, getcurrQuad() + 1, yylineno);
+                emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+                emit(assign, newExpr_constbool(0), NULL, $1, getcurrQuad() + 1, yylineno);
+                emptyBoolList(trueList);
+                emptyBoolList(falseList);
+            }
             if($1->exprType == tableitem_e) {
                 emit(tablesetelem, $1->index, $4, $1, getcurrQuad()+1, yylineno );
                 $$ = emit_ifTableItem($1,scope,yylineno);
@@ -534,7 +572,6 @@ member: lvalue DOT ID   {
         $$ -> index = $3;
     }
     |call DOT ID    {
-            //TODO: this
             printf("call.id -> member\n"); 
             $$ = member_item($1, yylval.strVal, scope, yylineno);
         } 
@@ -941,6 +978,15 @@ idlist: ID {
     ;
 
 ifprefix: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+    if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
+            patchBoolList(getcurrQuad(), trueList -> next);
+            patchBoolList(getcurrQuad() + 2, falseList -> next);
+            emit(assign, newExpr_constbool(1), NULL, $3, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $3, getcurrQuad() + 1, yylineno);
+            emptyBoolList(trueList);
+            emptyBoolList(falseList);
+    }
     emit(if_eq, newExpr_constbool(1), NULL, $3, getcurrQuad() + 2, yylineno);
     $$ = getcurrQuad();
     emit(jump, NULL, NULL, NULL, 0, yylineno);
@@ -968,6 +1014,15 @@ whilestart: WHILE {loopFlag++; $$ = getcurrQuad();}
     ;
 
 whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+        if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
+            patchBoolList(getcurrQuad(), trueList -> next);
+            patchBoolList(getcurrQuad() + 2, falseList -> next);
+            emit(assign, newExpr_constbool(1), NULL, $2, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $2, getcurrQuad() + 1, yylineno);
+            emptyBoolList(trueList);
+            emptyBoolList(falseList);
+        }
         emit(if_eq, newExpr_constbool(1), NULL,  $2, getcurrQuad() + 2, yylineno);
         $$ = getcurrQuad();
         emit(jump, NULL, NULL, NULL, 0, yylineno);
@@ -997,9 +1052,21 @@ M: {$$ = getcurrQuad();}
 
 forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
     loopFlag++;
+    
+    if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
+        patchBoolList(getcurrQuad(), trueList -> next);
+        patchBoolList(getcurrQuad() + 2, falseList -> next);
+        emit(assign, newExpr_constbool(1), NULL, $6, getcurrQuad() + 1, yylineno);
+        emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+        emit(assign, newExpr_constbool(0), NULL, $6, getcurrQuad() + 1, yylineno);
+        emptyBoolList(trueList);
+        emptyBoolList(falseList);
+    }
+    
     $$ = (loopStruct*)malloc(sizeof(loopStruct));
     $$ -> test = $5;
     $$ -> enter = getcurrQuad();
+
     emit(if_eq, newExpr_constbool(1), NULL, $6, 0, yylineno);
 }
 
@@ -1045,19 +1112,30 @@ int main(int argc, char* argv[]){
 
     temp_func = (Function *)malloc(sizeof(Function));
     temp_func -> arguments =(char**)malloc(10*sizeof(char*));
+    
     exprStack = (Expr*)malloc(sizeof(Expr));
+    exprStack -> next = NULL;
 
     offsetStack = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
-    lushAlex = (Expr*)malloc(sizeof(Expr));
-    exprStack -> next = NULL;
     offsetStack-> next = NULL;
+    
+    lushAlex = (Expr*)malloc(sizeof(Expr));
 
     breakStack = (specialStmt*) malloc(sizeof(specialStmt));
     breakStack -> next = NULL;
+
     continueStack = (specialStmt*) malloc(sizeof(specialStmt));
     continueStack -> next = NULL;
+
     retStack = (specialStmt*) malloc(sizeof(specialStmt));
     retStack -> next = NULL;
+
+    trueList = (boolStmt *) malloc(sizeof(boolStmt));
+    trueList -> next = NULL;
+
+    falseList = (boolStmt *) malloc(sizeof(boolStmt));
+    falseList -> next = NULL;
+
 
     initTable();
 

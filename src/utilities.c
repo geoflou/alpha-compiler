@@ -618,7 +618,6 @@ void popSpecialScope(specialStmt* head, int flag) {
     
 }
 
-
 specialStmt* popSpecialStmt(specialStmt* head, int flag) {
     specialStmt* out = (specialStmt*) malloc(sizeof(specialStmt));
 
@@ -637,3 +636,73 @@ specialStmt* popSpecialStmt(specialStmt* head, int flag) {
 
     return out;
 }
+
+void insertBoolStmt(int quadNo, boolStmt* head) {
+    boolStmt* newNode = (boolStmt *)malloc(sizeof(boolStmt));
+    
+    newNode -> quadNo = quadNo;
+    newNode -> next = NULL;
+
+    if(head == NULL) {
+        head = newNode;
+        return;
+    }
+
+    newNode -> next = head -> next;
+    head -> next = newNode;
+    return;
+}
+
+void patchBoolList(int label, boolStmt* head) {
+    boolStmt* index;
+
+        index = head;
+        while(index != NULL) {
+            patchLabel(index -> quadNo, label);
+            index = index -> next;
+        }
+        return;
+}
+
+int isEmptyBoolList(boolStmt* head) {
+    assert(head != NULL);
+    if(head -> next == NULL) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void emptyBoolList(boolStmt* head) {
+    boolStmt* poped = (boolStmt*)malloc(sizeof(boolStmt));
+    boolStmt* index = (boolStmt*)malloc(sizeof(boolStmt));
+
+
+    index = head -> next;
+    while (index != NULL) {
+        poped = popBoolStmt(head);
+        if(poped == NULL) {
+            break;
+        }
+        index = head -> next;
+    }
+
+    return;
+    
+}
+
+boolStmt* popBoolStmt(boolStmt* head) {
+    boolStmt* out = (boolStmt*) malloc(sizeof(boolStmt));
+
+    assert(head != NULL);
+    if(head -> next == NULL) {
+        return NULL;
+    }
+
+    out = head -> next;
+    head -> next  = out-> next;
+    out -> next = NULL;
+
+    return out;
+}
+
