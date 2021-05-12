@@ -533,7 +533,11 @@ member: lvalue DOT ID   {
         $$ -> symbol = $1 -> symbol;
         $$ -> index = $3;
     }
-    |call DOT ID    {printf("call.id -> member\n");}
+    |call DOT ID    {
+            //TODO: this
+            printf("call.id -> member\n"); 
+            $$ = member_item($1, yylval.strVal, scope, yylineno);
+        } 
     |call LEFT_BRACE expr RIGHT_BRACE   {printf("call[expr] -> member\n");}
     ;
 
