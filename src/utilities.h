@@ -52,6 +52,8 @@ typedef struct expr{
     SymbolTableEntry* symbol;
     struct expr* index;
     struct expr* indexedelem_value;
+    struct bool_stmt* trueList;
+    struct bool_stmt* falseList;
     double numConst;
     char* strConst;
     unsigned char boolConst;
@@ -95,7 +97,6 @@ typedef struct special_stmt {
 
 typedef struct bool_stmt {
     int quadNo;
-    int label;
     struct bool_stmt* next;
 } boolStmt;
 
@@ -177,7 +178,7 @@ specialStmt* popSpecialStmt(specialStmt* head, int flag);
 
 void popSpecialScope(specialStmt* head, int flag);
 
-void insertBoolStmt(int quadNo, boolStmt* head);
+boolStmt* insertBoolStmt(int quadNo, boolStmt* head);
 
 void patchBoolList(int label, boolStmt* head);
 
@@ -186,3 +187,6 @@ void emptyBoolList(boolStmt* head);
 boolStmt* popBoolStmt(boolStmt* head);
 
 int isEmptyBoolList(boolStmt* head);
+
+boolStmt* mergeList(boolStmt* l1, boolStmt* l2);
+

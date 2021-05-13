@@ -387,7 +387,7 @@ char* getExpr(Expr* e) {
 void printQuads(void) {
     int i = 0;
     quad *index;
-    printf("\033[0;35mQUAD# \t OPCODE \t RESULT \t ARG1 \t\t ARG2 \t\tLABEL\033[0m\n");
+    printf("\n\033[0;35mQUAD# \t OPCODE \t RESULT \t ARG1 \t\t ARG2 \t\tLABEL\033[0m\n");
     printf("====================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
@@ -401,7 +401,7 @@ void printQuads(void) {
         
         i++;
     }
-    printf("\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
+    printf("\n\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
     printf("\033[32;1mlocal var offset is : %d\033[0m\n", functionLocalOffset);
     printf("\033[32;1mformal args offset is : %d\033[0m\n", formalArgOffset);
     
@@ -637,7 +637,7 @@ specialStmt* popSpecialStmt(specialStmt* head, int flag) {
     return out;
 }
 
-void insertBoolStmt(int quadNo, boolStmt* head) {
+boolStmt* insertBoolStmt(int quadNo, boolStmt* head) {
     boolStmt* newNode = (boolStmt *)malloc(sizeof(boolStmt));
     
     newNode -> quadNo = quadNo;
@@ -645,17 +645,16 @@ void insertBoolStmt(int quadNo, boolStmt* head) {
 
     if(head == NULL) {
         head = newNode;
-        return;
+        return head;
     }
 
-    newNode -> next = head -> next;
+    newNode -> next = head;
     head -> next = newNode;
-    return;
+    return head;
 }
 
 void patchBoolList(int label, boolStmt* head) {
     boolStmt* index;
-
         index = head;
         while(index != NULL) {
             patchLabel(index -> quadNo, label);
@@ -665,8 +664,7 @@ void patchBoolList(int label, boolStmt* head) {
 }
 
 int isEmptyBoolList(boolStmt* head) {
-    assert(head != NULL);
-    if(head -> next == NULL) {
+    if(head == NULL) {
         return 1;
     }
 
@@ -675,17 +673,15 @@ int isEmptyBoolList(boolStmt* head) {
 
 void emptyBoolList(boolStmt* head) {
     boolStmt* poped = (boolStmt*)malloc(sizeof(boolStmt));
-    boolStmt* index = (boolStmt*)malloc(sizeof(boolStmt));
+    boolStmt* index ;
 
-
-    index = head -> next;
-    while (index != NULL) {
-        poped = popBoolStmt(head);
-        if(poped == NULL) {
-            break;
-        }
-        index = head -> next;
+    index = head;
+    while(index != NULL) {
+        head = index -> next;
+        free(index);
+        index = head;
     }
+    
 
     return;
     
@@ -694,15 +690,38 @@ void emptyBoolList(boolStmt* head) {
 boolStmt* popBoolStmt(boolStmt* head) {
     boolStmt* out = (boolStmt*) malloc(sizeof(boolStmt));
 
-    assert(head != NULL);
     if(head -> next == NULL) {
         return NULL;
     }
 
-    out = head -> next;
-    head -> next  = out-> next;
+    out = head;
+    head = out-> next;
     out -> next = NULL;
-
     return out;
 }
 
+boolStmt* mergeList(boolStmt* l1, boolStmt* l2) {
+    boolStmt* index, *tmp;
+
+    assert(l1 != NULL && l2 != NULL);
+    if(l1 == NULL) {
+        return l2;
+    }   
+
+    if(l2 == NULL) {
+        return l1;
+    }
+
+    index = l1;
+    tmp = l2;
+    while(tmp -> next != NULL) {
+        tmp = tmp -> next;
+    }
+
+    tmp -> next = index;
+    l1 = tmp;
+
+    l2 = NULL;
+
+    return l1;
+}
