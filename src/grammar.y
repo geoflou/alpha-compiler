@@ -36,8 +36,6 @@
     int loopFlag = 0;
     int funcFlag = 0;
     int memberflag = 0;
-    int andFlag = 0;
-    int orFlag = 0;
 
 %}
 
@@ -125,6 +123,7 @@
 
 
 //TODO: expression boolean value
+//TODO: outsie rules extra emits gia meriki apotimish
 
 %%
 program: set   {printf("set -> program\n");}
@@ -170,8 +169,6 @@ stmt: expr SEMICOLON    {
             
         }
 
-        if(andFlag > 0) {andFlag = 0;}
-        if(orFlag > 0) {orFlag = 0;}
     }
     |ifstmt {printf("ifstmt -> stmt\n");}
     |whilestmt  {
@@ -297,7 +294,6 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         }
     | expr AND M expr    		{
         printf("expr and expr -> expr\n");
-        andFlag++;
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
         
@@ -334,11 +330,10 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
     }
     | expr OR expr 		{
         printf("expr or expr -> expr\n");
-        orFlag++;
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
 
-        if($1 -> exprType != boolexpr_e) {
+        /*if($1 -> exprType != boolexpr_e) {
 
             //insertBoolStmt(getcurrQuad(), trueList);
             emit(if_eq, newExpr_constbool(1), NULL, $1, 0, yylineno);
@@ -358,7 +353,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
 
             //insertBoolStmt(getcurrQuad(), falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
-        }
+        }*/
     }
     |term   {printf("term -> expr\n");}  
     ;
