@@ -23,9 +23,6 @@
     specialStmt* continueStack = (specialStmt *) 0;
     specialStmt* retStack = (specialStmt *) 0;
 
-    boolStmt* trueList = (boolStmt *) 0;
-    boolStmt* falseList = (boolStmt *) 0;
-
     MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
 
     Function* temp_func;
@@ -112,18 +109,17 @@
 %right OPERATOR_ASSIGN
 %left OR
 %left AND
+%right NOT OPERATOR_PP OPERATOR_MM
 
 %nonassoc OPERATOR_EQ OPERATOR_NEQ
-%right OPERATOR_GRT OPERATOR_LES OPERATOR_GRE OPERATOR_LEE
+%nonassoc OPERATOR_GRT OPERATOR_LES OPERATOR_GRE OPERATOR_LEE
 %left OPERATOR_PLUS OPERATOR_MINUS
 %left OPERATOR_MUL OPERATOR_DIV OPERATOR_MOD
-%right NOT OPERATOR_PP OPERATOR_MM
 
 %left DOT DOUBLE_DOT    
 
 
 //TODO: expression boolean value
-//TODO: outsie rules extra emits gia meriki apotimish
 
 %%
 program: set   {printf("set -> program\n");}
@@ -248,7 +244,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ -> falseList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
-    | expr OPERATOR_LES expr    {
+    | expr OPERATOR_LES expr{
             printf("expr < expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
@@ -258,7 +254,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
 
             $$ -> falseList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
-        }
+        } 
     | expr OPERATOR_LEE expr    {
             printf("expr <= expr -> expr\n");
             $$ = newExpr(boolexpr_e);
@@ -328,39 +324,50 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         $$ -> trueList = $4 -> trueList;
         $$ -> falseList = mergeList($1 -> falseList, $4 -> falseList);
     }
-    | expr OR expr 		{
+    | expr OR M expr 		{
         printf("expr or expr -> expr\n");
         $$ = newExpr(boolexpr_e);
         $$ -> symbol = newTemp(scope, yylineno);
 
-        /*if($1 -> exprType != boolexpr_e) {
+        if($1 -> exprType != boolexpr_e) {
 
-            //insertBoolStmt(getcurrQuad(), trueList);
+            $1 -> trueList = insertBoolStmt(getcurrQuad(), $1 -> trueList);
             emit(if_eq, newExpr_constbool(1), NULL, $1, 0, yylineno);
 
-            //insertBoolStmt(getcurrQuad(), falseList);
+            $1 -> falseList = insertBoolStmt(getcurrQuad(), $1 -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
-            
-            patchBoolList(getcurrQuad(), falseList -> next);
-            emptyBoolList(falseList);
+
         } 
-        
-        
-        if($3 -> exprType != boolexpr_e) {
 
-            //insertBoolStmt(getcurrQuad(), trueList);
-            emit(if_eq, newExpr_constbool(1), NULL, $3, 0, yylineno);
+        if($3 != 0) {
+            patchBoolList($3, $1 -> falseList);
+            emptyBoolList($1 -> falseList);
+        } else {
+            patchBoolList(getcurrQuad(), $1 -> falseList);
+            emptyBoolList($1 -> falseList);
+        }
+        
+        if($4 -> exprType != boolexpr_e) {
 
-            //insertBoolStmt(getcurrQuad(), falseList);
+            $4 -> trueList = insertBoolStmt(getcurrQuad(), $4 -> trueList);
+            emit(if_eq, newExpr_constbool(1), NULL, $4, 0, yylineno);
+
+            $4 -> falseList = insertBoolStmt(getcurrQuad(), $4 -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
-        }*/
-    }
-    |term   {printf("term -> expr\n");}  
+        }
+
+        
+        $$ -> falseList = $4 -> falseList;
+        $$ -> trueList = mergeList($1 -> trueList, $4 -> trueList);
+    } 
+    |term   {
+            printf("term -> expr\n");
+        }  
     ;
 
 term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
-        printf("(expr) -> term");
-        $$=$2;
+        printf("(expr) -> term\n");
+        $$ = $2;
     }
     |OPERATOR_MINUS expr    {
         printf("- expr -> term\n");
@@ -388,12 +395,11 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
 
             }
             
-            tmp = $2 -> trueList;
-            $2 -> trueList = $2 -> falseList;
-            $2 -> falseList = tmp;
-
-            $$ = $2;
-
+            //SEGFAULT FOR DEBUG
+            $$ -> trueList = $2 -> falseList;
+            $$ -> falseList = $2 -> trueList;
+            $2 -> falseList = NULL;
+            $2 -> trueList = NULL;
         }
     |OPERATOR_PP lvalue {
             printf("++lvalue -> term\n");
@@ -540,14 +546,14 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
-            if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
-                patchBoolList(getcurrQuad(), trueList -> next);
-                patchBoolList(getcurrQuad() + 2, falseList -> next);
-                emit(assign, newExpr_constbool(1), NULL, $1, getcurrQuad() + 1, yylineno);
+            if(!isEmptyBoolList($4 -> trueList) || !isEmptyBoolList($4 -> falseList)) {
+                patchBoolList(getcurrQuad(), $4 -> trueList);
+                patchBoolList(getcurrQuad() + 2, $4 -> falseList);
+                emit(assign, newExpr_constbool(1), NULL, $4, getcurrQuad() + 1, yylineno);
                 emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-                emit(assign, newExpr_constbool(0), NULL, $1, getcurrQuad() + 1, yylineno);
-                emptyBoolList(trueList);
-                emptyBoolList(falseList);
+                emit(assign, newExpr_constbool(0), NULL, $4, getcurrQuad() + 1, yylineno);
+                emptyBoolList($4 -> trueList);
+                emptyBoolList($4 -> falseList);
             }
             if($1->exprType == tableitem_e) {
                 emit(tablesetelem, $1->index, $4, $1, getcurrQuad()+1, yylineno );
@@ -673,6 +679,7 @@ call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
                 $1 = emit_ifTableItem(member_item(t, $3 -> name, scope, yylineno), scope, yylineno);
                 $3 -> e_list -> next = t;
             }
+            
             $$ = make_call($1, $3 -> e_list, scope, yylineno);
             
         }
@@ -723,6 +730,19 @@ elist: expr {
         else {
             $1 -> next = exprStack -> next;
             exprStack -> next = $1;
+        }
+
+        if(!isEmptyBoolList($1 -> trueList) || !isEmptyBoolList($1 -> falseList)) {
+            patchBoolList(getcurrQuad(), $1 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $1 -> falseList);
+            
+            emit(assign, newExpr_constbool(1), NULL, $1, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $1, getcurrQuad() + 1, yylineno);
+            
+            emptyBoolList($1 -> trueList);
+            emptyBoolList($1 -> falseList);
+            
         }
     }
     |expr COMMA elist {
@@ -1049,15 +1069,19 @@ idlist: ID {
     ;
 
 ifprefix: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
-    if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
-            patchBoolList(getcurrQuad(), trueList -> next);
-            patchBoolList(getcurrQuad() + 2, falseList -> next);
+    if(!isEmptyBoolList($3 -> trueList) || !isEmptyBoolList($3 -> falseList)) {
+            patchBoolList(getcurrQuad(), $3 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $3 -> falseList);
+            
             emit(assign, newExpr_constbool(1), NULL, $3, getcurrQuad() + 1, yylineno);
             emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
             emit(assign, newExpr_constbool(0), NULL, $3, getcurrQuad() + 1, yylineno);
-            emptyBoolList(trueList);
-            emptyBoolList(falseList);
-    }
+            
+            emptyBoolList($3 -> trueList);
+            emptyBoolList($3 -> falseList);
+            
+        }
+
     emit(if_eq, newExpr_constbool(1), NULL, $3, getcurrQuad() + 2, yylineno);
     $$ = getcurrQuad();
     emit(jump, NULL, NULL, NULL, 0, yylineno);
@@ -1085,14 +1109,17 @@ whilestart: WHILE {loopFlag++; $$ = getcurrQuad();}
     ;
 
 whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
-        if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
-            patchBoolList(getcurrQuad(), trueList -> next);
-            patchBoolList(getcurrQuad() + 2, falseList -> next);
+        if(!isEmptyBoolList($2 -> trueList) || !isEmptyBoolList($2 -> falseList)) {
+            patchBoolList(getcurrQuad(), $2 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $2 -> falseList);
+            
             emit(assign, newExpr_constbool(1), NULL, $2, getcurrQuad() + 1, yylineno);
             emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
             emit(assign, newExpr_constbool(0), NULL, $2, getcurrQuad() + 1, yylineno);
-            emptyBoolList(trueList);
-            emptyBoolList(falseList);
+            
+            emptyBoolList($2 -> trueList);
+            emptyBoolList($2 -> falseList);
+            
         }
         emit(if_eq, newExpr_constbool(1), NULL,  $2, getcurrQuad() + 2, yylineno);
         $$ = getcurrQuad();
@@ -1124,15 +1151,18 @@ M: {$$ = getcurrQuad();}
 forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
     loopFlag++;
     
-    if(!isEmptyBoolList(trueList) || !isEmptyBoolList(falseList)) {
-        patchBoolList(getcurrQuad(), trueList -> next);
-        patchBoolList(getcurrQuad() + 2, falseList -> next);
-        emit(assign, newExpr_constbool(1), NULL, $6, getcurrQuad() + 1, yylineno);
-        emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-        emit(assign, newExpr_constbool(0), NULL, $6, getcurrQuad() + 1, yylineno);
-        emptyBoolList(trueList);
-        emptyBoolList(falseList);
-    }
+    if(!isEmptyBoolList($6 -> trueList) || !isEmptyBoolList($6 -> falseList)) {
+            patchBoolList(getcurrQuad(), $6 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $6 -> falseList);
+            
+            emit(assign, newExpr_constbool(1), NULL, $6, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $6, getcurrQuad() + 1, yylineno);
+            
+            emptyBoolList($6 -> trueList);
+            emptyBoolList($6 -> falseList);
+            
+        }
     
     $$ = (loopStruct*)malloc(sizeof(loopStruct));
     $$ -> test = $5;
@@ -1142,13 +1172,13 @@ forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
 }
 
 
-forstmt: forprefix N elist RIGHT_PARENTHESIS N stmt N {
+forstmt: forprefix N elist {exprStack -> next = NULL;} RIGHT_PARENTHESIS N stmt N {
             printf("for(elist;expr;elist)stmt -> forstmt\n"); 
 
-            patchLabel($1 -> enter, $5 + 1);
+            patchLabel($1 -> enter, $6 + 1);
             patchLabel($2, getcurrQuad());
-            patchLabel($5, $1 -> test);
-            patchLabel($7, $2 + 1);
+            patchLabel($6, $1 -> test);
+            patchLabel($8, $2 + 1);
 
             patchList(breakStack -> next,getcurrQuad(), loopFlag);
             patchList(continueStack -> next , $2 + 1, loopFlag);
@@ -1201,11 +1231,6 @@ int main(int argc, char* argv[]){
     retStack = (specialStmt*) malloc(sizeof(specialStmt));
     retStack -> next = NULL;
 
-    trueList = (boolStmt *) malloc(sizeof(boolStmt));
-    trueList -> next = NULL;
-
-    falseList = (boolStmt *) malloc(sizeof(boolStmt));
-    falseList -> next = NULL;
 
 
     initTable();

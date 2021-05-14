@@ -687,19 +687,6 @@ void emptyBoolList(boolStmt* head) {
     
 }
 
-boolStmt* popBoolStmt(boolStmt* head) {
-    boolStmt* out = (boolStmt*) malloc(sizeof(boolStmt));
-
-    if(head -> next == NULL) {
-        return NULL;
-    }
-
-    out = head;
-    head = out-> next;
-    out -> next = NULL;
-    return out;
-}
-
 boolStmt* mergeList(boolStmt* l1, boolStmt* l2) {
     boolStmt* index, *tmp;
 

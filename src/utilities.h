@@ -184,8 +184,6 @@ void patchBoolList(int label, boolStmt* head);
 
 void emptyBoolList(boolStmt* head);
 
-boolStmt* popBoolStmt(boolStmt* head);
-
 int isEmptyBoolList(boolStmt* head);
 
 boolStmt* mergeList(boolStmt* l1, boolStmt* l2);
