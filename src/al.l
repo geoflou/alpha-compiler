@@ -97,6 +97,7 @@ LOCAL_KEYWORD           "local"
 TRUE            "true"
 FALSE           "false"
 NIL             "nil"
+NOT    "not"
 OPERATOR_PLUS   "+"
 OPERATOR_MINUS  "-"
 OPERATOR_MUL    "*"
@@ -105,7 +106,6 @@ OPERATOR_ASSIGN "="
 OPERATOR_MOD    "%"
 OPERATOR_EQ     "=="
 OPERATOR_NEQ    "!="
-NOT    "not"
 AND    "and"
 OR     "or"
 OPERATOR_PP     "++"
@@ -237,16 +237,16 @@ UNKNOWN_TOKEN       .
 {NIL}                 {return NIL;}
 {WHITE_SPACE}         {}
 {NEWLINE}             {}
+{NOT}        	      {return NOT;}
 {OPERATOR_PLUS}       {return OPERATOR_PLUS;}
 {OPERATOR_MINUS}      {return OPERATOR_MINUS;}
 {OPERATOR_MUL}        {return OPERATOR_MUL;}
 {OPERATOR_DIV}        {return OPERATOR_DIV;}
 {OPERATOR_ASSIGN}     {return OPERATOR_ASSIGN;}
 {OPERATOR_MOD}        {return OPERATOR_MOD;}
+{AND}		          {return AND;}
+{OR}		          {return OR;}
 {OPERATOR_EQ}         {return OPERATOR_EQ;}
-{NOT}        	      {return NOT;}
-{AND}		      {return AND;}
-{OR}		      {return OR;}
 {OPERATOR_PP}         {return OPERATOR_PP;}
 {OPERATOR_MM}         {return OPERATOR_MM;}
 {OPERATOR_GRT}        {return OPERATOR_GRT;}

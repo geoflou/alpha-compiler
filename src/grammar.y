@@ -107,9 +107,9 @@
 %left LEFT_PARENTHESIS RIGHT_PARENTHESIS
 
 %right OPERATOR_ASSIGN
+%right NOT OPERATOR_PP OPERATOR_MM
 %left OR
 %left AND
-%right NOT OPERATOR_PP OPERATOR_MM
 
 %nonassoc OPERATOR_EQ OPERATOR_NEQ
 %nonassoc OPERATOR_GRT OPERATOR_LES OPERATOR_GRE OPERATOR_LEE
@@ -120,6 +120,7 @@
 
 
 //TODO: expression boolean value
+//TODO: PRINT QUADS IN A FILE
 
 %%
 program: set   {printf("set -> program\n");}
@@ -134,6 +135,7 @@ breakstmt: BREAK SEMICOLON{
     printf("break; -> break\n");
     if(loopFlag == 0) {
         yyerror("\033[31mERROR: break statement outside loop\033[0m\t");
+        return 1;
     }
     insertSpecialStmt(getcurrQuad(), loopFlag, breakStack);
     emit(jump, NULL, NULL, NULL, 0, yylineno);
@@ -144,6 +146,7 @@ continuestmt: CONTINUE SEMICOLON{
     printf("continue; -> continue\n");
     if(loopFlag == 0) {
         yyerror("\033[31mERROR: continue statement outside loop\033[0m\t");
+        return 1;
     }
     
     insertSpecialStmt(getcurrQuad(), loopFlag, continueStack);
@@ -177,6 +180,7 @@ stmt: expr SEMICOLON    {
                 printf("returnstmt -> stmt\n");
                 if(funcFlag == 0) {
                     yyerror("\033[31mERROR: return statement outside function\033[0m\t");
+                    return 1;
                 }
             }
     |breakstmt    {
@@ -189,6 +193,189 @@ stmt: expr SEMICOLON    {
     |funcdef    {printf("funcdef -> stmt\n");}
     |SEMICOLON  {printf("; -> stmt\n");}
     ;
+
+term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
+        printf("(expr) -> term\n");
+        $$ = $2;
+    }
+    |OPERATOR_MINUS expr    {
+        printf("- expr -> term\n");
+        if(checkArith($2) == 1){
+            $$ = newExpr(arithexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+            emit(uminus, $2, NULL, $$, getcurrQuad()+1, yylineno);
+        }else {
+            printf("\033[31mERROR: unary minus expression used outside arithmetic expression \033[0m \n");
+            return 1;
+        }
+    }
+    |NOT expr  		{
+            printf("not expr -> term\n");
+            boolStmt* tmp ;
+            $$ = newExpr(boolexpr_e);
+            $$ -> symbol = newTemp(scope, yylineno);
+
+            if($2 -> exprType != boolexpr_e) {
+
+                $2 -> trueList = insertBoolStmt(getcurrQuad(), $2 -> trueList);
+                emit(if_eq, newExpr_constbool(1), NULL, $2, 0, yylineno);
+
+                $2 -> falseList = insertBoolStmt(getcurrQuad(), $2 -> falseList);
+                emit(jump, NULL, NULL, NULL, 0, yylineno);
+
+                emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+                emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+                emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+
+            }
+            
+            //SEGFAULT FOR DEBUG
+            $$ -> trueList = $2 -> falseList;
+            $$ -> falseList = $2 -> trueList;
+            //$2 -> falseList = NULL;
+            //$2 -> trueList = NULL;
+        }
+    |OPERATOR_PP lvalue {
+            printf("++lvalue -> term\n");
+            SymbolTableEntry* temp;
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($2 -> symbol), scope);
+            }
+
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                    return 1;
+                }
+            }
+            if(checkArith($2) == 1) {
+                if($2 -> exprType == tableitem_e) {
+                    $$ = emit_ifTableItem($2, scope, yylineno);
+                    emit(add, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
+                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
+                } else {
+                    emit(add, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
+                    $$ = newExpr(arithexpr_e);
+                    $$ -> symbol = newTemp(scope, yylineno);
+                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
+                }
+            }
+            else {
+            printf("\033[31mERROR: plus plus expression used outside arithmetic expression \033[0m \n");
+            return 1;
+        }
+        }
+    |lvalue {
+                SymbolTableEntry* temp;
+                if(memberflag == 0) {
+                    temp = lookupScope(yylval.strVal, scope);
+                } else {
+                    temp = lookupScope(getEntryName($1 -> symbol), scope);
+                }
+                if(temp != NULL) {
+                    if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                        yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                        return 1;
+                    }
+                }
+    }   OPERATOR_PP {
+        printf("lvalue++ -> term\n");
+            if(checkArith($1) == 1){
+                $$ = newExpr(var_e);
+                $$ -> symbol = newTemp(scope, yylineno);
+                if($1-> exprType == tableitem_e){
+                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
+                    n = emit_ifTableItem($1, scope, yylineno);
+                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(add, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
+                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
+                } else{
+                    emit(assign, $1, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(add, $1, newExpr_constnum(1), $1, getcurrQuad()+1, yylineno);
+                }
+            }
+            else {
+            printf("\033[31mERROR: expression plus plus used outside arithmetic expression \033[0m \n");
+            return 1;
+        }
+        }
+    |OPERATOR_MM lvalue {
+            printf("--lvalue -> term\n");
+            SymbolTableEntry* temp;
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($2 -> symbol), scope);
+            }
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                    return 1;
+                }
+            }
+            if(checkArith($2) == 1) {
+                if($2 -> exprType == tableitem_e) {
+                    $$ = emit_ifTableItem($2, scope, yylineno);
+                    emit(sub, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
+                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
+                } else {
+                    emit(sub, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
+                    $$ = newExpr(arithexpr_e);
+                    $$ -> symbol = newTemp(scope, yylineno);
+                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
+                }
+            }
+            else {
+            printf("\033[31mERROR: minus minus expression used outside arithmetic expression \033[0m \n");
+            return 1;
+        }
+        }
+    |lvalue {
+            SymbolTableEntry* temp;
+            if(memberflag == 0) {
+                temp = lookupScope(yylval.strVal, scope);
+            } else {
+                temp = lookupScope(getEntryName($1 -> symbol), scope);
+            }
+            if(temp != NULL) {
+                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
+                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                    return 1;
+                }
+            }
+        } OPERATOR_MM {
+            printf("lvalue-- -> term\n");
+            if(checkArith($1) == 1){
+                $$ = newExpr(var_e);
+                $$ -> symbol = newTemp(scope, yylineno);
+                if($1 -> exprType == tableitem_e) {
+                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
+                    n = emit_ifTableItem($1, scope, yylineno);
+                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
+                    emit(sub, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
+                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
+                } else{
+                    emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
+                    emit(sub, $1, newExpr_constnum(1), $1, getcurrQuad() + 1, yylineno);
+                }
+            }
+            else {
+            printf("\033[31mERROR: expression minus minus used outside arithmetic expression \033[0m \n");
+            return 1;
+        }
+
+        }
+    |primary    {
+        printf("primary -> term\n");
+        $$ = $1;
+        }
+    ;
+
+
+
+
 
 expr: assignexpr    { printf("assignexpr -> expr\n");}
     | expr OPERATOR_PLUS expr   {
@@ -263,7 +450,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_lesseq, $1, $3, NULL, 0, yylineno);
 
-            $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
+            $$ -> falseList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr OPERATOR_EQ expr 	{
@@ -285,7 +472,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_noteq, $1, $3, NULL, 0, yylineno);
 
-            $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
+            $$ -> falseList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr AND M expr    		{
@@ -362,173 +549,8 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
     } 
     |term   {
             printf("term -> expr\n");
+            $$ = $1;
         }  
-    ;
-
-term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
-        printf("(expr) -> term\n");
-        $$ = $2;
-    }
-    |OPERATOR_MINUS expr    {
-        printf("- expr -> term\n");
-        if(checkArith($2) == 1){
-            $$ = newExpr(arithexpr_e);
-            $$ -> symbol = newTemp(scope, yylineno);
-            emit(uminus, $2, NULL, $$, getcurrQuad()+1, yylineno);
-        }else {
-            printf("\033[31mERROR: unary minus expression used outside arithmetic expression \033[0m \n");
-        }
-    }
-    |NOT expr  		{
-            printf("not expr -> term\n");
-            boolStmt* tmp ;
-            $$ = newExpr(boolexpr_e);
-            $$ -> symbol = newTemp(scope, yylineno);
-
-            if($2 -> exprType != boolexpr_e) {
-
-                $2 -> trueList = insertBoolStmt(getcurrQuad(), $2 -> trueList);
-                emit(if_eq, newExpr_constbool(1), NULL, $2, 0, yylineno);
-
-                $2 -> falseList = insertBoolStmt(getcurrQuad(), $2 -> falseList);
-                emit(jump, NULL, NULL, NULL, 0, yylineno);
-
-            }
-            
-            //SEGFAULT FOR DEBUG
-            $$ -> trueList = $2 -> falseList;
-            $$ -> falseList = $2 -> trueList;
-            $2 -> falseList = NULL;
-            $2 -> trueList = NULL;
-        }
-    |OPERATOR_PP lvalue {
-            printf("++lvalue -> term\n");
-            SymbolTableEntry* temp;
-            if(memberflag == 0) {
-                temp = lookupScope(yylval.strVal, scope);
-            } else {
-                temp = lookupScope(getEntryName($2 -> symbol), scope);
-            }
-
-            if(temp != NULL) {
-                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
-                }
-            }
-            if(checkArith($2) == 1) {
-                if($2 -> exprType == tableitem_e) {
-                    $$ = emit_ifTableItem($2, scope, yylineno);
-                    emit(add, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
-                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
-                } else {
-                    emit(add, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
-                    $$ = newExpr(arithexpr_e);
-                    $$ -> symbol = newTemp(scope, yylineno);
-                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
-                }
-            }
-            else {
-            printf("\033[31mERROR: plus plus expression used outside arithmetic expression \033[0m \n");
-        }
-        }
-    |lvalue {
-                SymbolTableEntry* temp;
-                if(memberflag == 0) {
-                    temp = lookupScope(yylval.strVal, scope);
-                } else {
-                    temp = lookupScope(getEntryName($1 -> symbol), scope);
-                }
-                if(temp != NULL) {
-                    if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                        yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
-                    }
-                }
-    }   OPERATOR_PP {
-        printf("lvalue++ -> term\n");
-            if(checkArith($1) == 1){
-                $$ = newExpr(var_e);
-                $$ -> symbol = newTemp(scope, yylineno);
-                if($1-> exprType == tableitem_e){
-                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
-                    n = emit_ifTableItem($1, scope, yylineno);
-                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
-                    emit(add, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
-                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
-                } else{
-                    emit(assign, $1, NULL, $$, getcurrQuad()+1, yylineno);
-                    emit(add, $1, newExpr_constnum(1), $1, getcurrQuad()+1, yylineno);
-                }
-            }
-            else {
-            printf("\033[31mERROR: expression plus plus used outside arithmetic expression \033[0m \n");
-        }
-        }
-    |OPERATOR_MM lvalue {
-            printf("--lvalue -> term\n");
-            SymbolTableEntry* temp;
-            if(memberflag == 0) {
-                temp = lookupScope(yylval.strVal, scope);
-            } else {
-                temp = lookupScope(getEntryName($2 -> symbol), scope);
-            }
-            if(temp != NULL) {
-                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
-                }
-            }
-            if(checkArith($2) == 1) {
-                if($2 -> exprType == tableitem_e) {
-                    $$ = emit_ifTableItem($2, scope, yylineno);
-                    emit(sub, $$, newExpr_constnum(1), $$, getcurrQuad() + 1, yylineno);
-                    emit(tablesetelem, $2, $2 -> index, $$, getcurrQuad() + 1, yylineno);
-                } else {
-                    emit(sub, $2, newExpr_constnum(1), $2, getcurrQuad() + 1, yylineno);
-                    $$ = newExpr(arithexpr_e);
-                    $$ -> symbol = newTemp(scope, yylineno);
-                    emit(assign, $2, NULL, $$, getcurrQuad() + 1, yylineno);
-                }
-            }
-            else {
-            printf("\033[31mERROR: minus minus expression used outside arithmetic expression \033[0m \n");
-        }
-        }
-    |lvalue {
-            SymbolTableEntry* temp;
-            if(memberflag == 0) {
-                temp = lookupScope(yylval.strVal, scope);
-            } else {
-                temp = lookupScope(getEntryName($1 -> symbol), scope);
-            }
-            if(temp != NULL) {
-                if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
-                    yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
-                }
-            }
-        } OPERATOR_MM {
-            printf("lvalue-- -> term\n");
-            if(checkArith($1) == 1){
-                $$ = newExpr(var_e);
-                $$ -> symbol = newTemp(scope, yylineno);
-                if($1 -> exprType == tableitem_e) {
-                    Expr* n = (Expr*)malloc(sizeof(Expr)); 
-                    n = emit_ifTableItem($1, scope, yylineno);
-                    emit(assign, n, NULL, $$, getcurrQuad()+1, yylineno);
-                    emit(sub, n, newExpr_constnum(1), n, getcurrQuad()+1, yylineno);
-                    emit(tablesetelem, $1, $1-> index, n, getcurrQuad()+1, yylineno);
-                } else{
-                    emit(assign, $1, NULL, $$, getcurrQuad() + 1, yylineno);
-                    emit(sub, $1, newExpr_constnum(1), $1, getcurrQuad() + 1, yylineno);
-                }
-            }
-            else {
-            printf("\033[31mERROR: expression minus minus used outside arithmetic expression \033[0m \n");
-        }
-
-        }
-    |primary    {
-        printf("primary -> term\n");
-        $$ = $1;
-        }
     ;
 
 assignexpr: lvalue {
@@ -538,6 +560,7 @@ assignexpr: lvalue {
                     if(temp != NULL) {
                         if(temp -> type == USERFUNC || temp -> type == LIBFUNC) {
                             yyerror("\033[31mERROR: Function cannot be used as lvalue\033[0m\t");
+                            return 1;
                         }
                     }
                 }else{
@@ -569,14 +592,20 @@ assignexpr: lvalue {
         }
     | call OPERATOR_ASSIGN expr {
         yyerror("\033[31mERROR: function call cannot be an lvalue\033[0m\t");
+        return 1;
     }
     ;
 
 
-primary: lvalue {printf("lvalue -> primary\n");
-                    $$ = emit_ifTableItem($1, scope, yylineno);
+primary: lvalue {
+        printf("lvalue -> primary\n");
+        $$ = emit_ifTableItem($1, scope, yylineno);
     }
-    |call   {printf("call -> primary\n");}
+    |call   {
+            printf("call -> primary\n"); 
+            $$ = (Expr*)malloc(sizeof(Expr));
+            $$ = $1;
+        }
     |objectdef  {printf("objectdef -> primary\n");}
     |LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS {
         printf("(funcdef) -> primary\n");
@@ -595,9 +624,10 @@ lvalue: ID  {
         searchScope = getEntryScope(f);
         temp = lookupEverything(yylval.strVal, searchScope + 1);
         if(temp != NULL) {
-            if(getEntryScope(temp) != 0 && getEntryScope(temp) < (searchScope + 1) && temp -> type != USERFUNC) {
+            if(getEntryScope(temp) != 0 && getEntryScope(temp) < (searchScope + 1) && temp -> type != USERFUNC && temp -> type != FORMAL) {
                     printf("\033[31mERROR: Cannot access \"%s\" inside function\033[0m", getEntryName(temp));
                     yyerror("\t");
+                    return 1;
             }
         }
     }
@@ -624,6 +654,7 @@ lvalue: ID  {
         if(lookupScope(yylval.strVal, 0) == NULL) {
             printf("\033[31mERROR: Global variable \"%s\" cannot be found!\033[0m", yylval.strVal);
             yyerror("\t");
+            return 1;
         }
         if(temp!=NULL){
             $$ = lvalue_expr(temp, scope, yylineno);
@@ -662,11 +693,12 @@ call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {
     }
     |lvalue{
             SymbolTableEntry* temp;
-            temp = lookupforCalls(yylval.strVal, scope);
+            temp = lookupforCalls(getEntryName($1 -> symbol), scope);
             if(temp != NULL){
                 if(getEntryScope(temp) != 0 && getEntryScope(temp) != scope && temp-> type  != USERFUNC) {
                     printf("\033[31mERROR: Cannot access \"%s\" inside function\033[0m", getEntryName(temp));
                     yyerror("\t");
+                    return 1;
                 }
             }
             
@@ -851,15 +883,18 @@ funcdef: FUNCTION ID {
             if(temp -> type == LIBFUNC){
                 printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
 
             if(temp -> type == USERFUNC){
                 printf("\033[31mERROR: Function name redefinition \"%s\" is already in use\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
             if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
                 printf("\033[31mERROR: Variable \"%s\" already defined\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
         }
         else{
@@ -901,7 +936,7 @@ funcdef: FUNCTION ID {
         resetScopeOffset();
     }
     block    {
-        printf("function id(idlist)block -> funcdef\n", yytext);
+        printf("function id(idlist)block -> funcdef\n");
         MinasTirithTouSpitiouMou* tmp = (MinasTirithTouSpitiouMou*) malloc(sizeof(MinasTirithTouSpitiouMou));
         if(funcFlag >= 0){
             tmp = popoffsetStack(offsetStack);
@@ -923,7 +958,7 @@ funcdef: FUNCTION ID {
     |FUNCTION {
         funcFlag++;
         char* fname = (char*) malloc(sizeof(char)*50);
-        sprintf( fname, "_anonfunc%d", anonFuncCounter);
+        sprintf( fname, "$anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
         anonFuncCounter++;
         insertOffsetStack(offsetStack, fname, loopFlag);
@@ -942,15 +977,18 @@ funcdef: FUNCTION ID {
             if(temp -> type == LIBFUNC){
                 printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
 
             if(temp -> type == USERFUNC){
                 printf("\033[31mERROR: Function name redefinition \"%s\" is already in use\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
             if(temp -> type == GLOBAL || temp -> type == LOCAL || temp -> type == FORMAL){
                 printf("\033[31mERROR: Variable \"%s\" already defined\033[0m", temp_func -> name);
                 yyerror("\t");
+                return 1;
             }
             
         }
@@ -1039,6 +1077,7 @@ idlist: ID {
         if(flag == 0) {
             printf("\033[31mERROR: Symbol with name \"%s\" already exists!\033[0m\t", yylval.strVal);
             yyerror("\t");
+            return 1;
         }else {
             temp_func -> arguments[arg_index] = yylval.strVal;
             arg_index++;
@@ -1059,6 +1098,7 @@ idlist: ID {
         if(flag == 0) {
             printf("\033[31mERROR: Symbol with name \"%s\" already exists!\033[0m\t", yylval.strVal);
             yyerror("\t");
+            return 1;
         }else {
             temp_func -> arguments[arg_index] = yylval.strVal;
             arg_index++;
@@ -1210,6 +1250,7 @@ int yyerror(char *message){
 }
 
 int main(int argc, char* argv[]){
+    int found_error = 0;
 
     temp_func = (Function *)malloc(sizeof(Function));
     temp_func -> arguments =(char**)malloc(10*sizeof(char*));
@@ -1235,11 +1276,13 @@ int main(int argc, char* argv[]){
 
     initTable();
 
-    yyparse();
+    found_error = yyparse();
 
     //printEntries();
     
-    printQuads();
+    if(!found_error) {
+        printQuads();
+    }
 
     return 0;
 }

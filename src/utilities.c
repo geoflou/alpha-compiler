@@ -51,7 +51,6 @@ void insertLocalID(char *name, int scope, int line) {
 
     if (comparelibfunc(name) == -1) {
         printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
-        yyerror("\t");
         return;
     }
 
@@ -92,7 +91,6 @@ void insertFormal(char *name, int scope, int line) {
     assert(name != NULL);
     if (comparelibfunc(name) == -1) {
         printf("\033[31mERROR: Function name redefinition \"%s\" is a library function\033[0m", name);
-        yyerror("\t");
         return;
     }
 
@@ -170,7 +168,7 @@ void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, int label, unsi
 
 char *newTempName(void) {
     char *name = (char *)malloc(sizeof(char) * 10);
-    sprintf(name, "_t%d", tempCounter);
+    sprintf(name, "$t%d", tempCounter);
     tempCounter++;
     return name;
 }
@@ -463,7 +461,8 @@ Expr * emit_ifTableItem(Expr* e, int scope, int line) {
         return e;
     }
     else {
-        Expr* result = newExpr(var_e);
+        Expr* result = (Expr*)malloc(sizeof(Expr)); 
+        result = newExpr(var_e);
         result->symbol = newTemp(scope , line);
         emit(tablegetelem,e,e->index,result,getcurrQuad()+1, line);
         return result;
