@@ -168,7 +168,7 @@ void emit(enum iopcode op, Expr *arg1, Expr *arg2, Expr *result, int label, unsi
 
 char *newTempName(void) {
     char *name = (char *)malloc(sizeof(char) * 10);
-    sprintf(name, "$t%d", tempCounter);
+    sprintf(name, "_t%d", tempCounter);
     tempCounter++;
     return name;
 }

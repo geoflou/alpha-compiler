@@ -100,6 +100,7 @@ typedef struct bool_stmt {
     struct bool_stmt* next;
 } boolStmt;
 
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)

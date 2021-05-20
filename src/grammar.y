@@ -101,22 +101,21 @@
 %token WHITESPACE
 
 
-%left SEMICOLON COLON COMMA DOUBLE_COLON
-%left LEFT_BRACKET RIGHT_BRACKET
-%left LEFT_BRACE RIGHT_BRACE
-%left LEFT_PARENTHESIS RIGHT_PARENTHESIS
-
 %right OPERATOR_ASSIGN
-%right NOT OPERATOR_PP OPERATOR_MM
 %left OR
 %left AND
-
 %nonassoc OPERATOR_EQ OPERATOR_NEQ
 %nonassoc OPERATOR_GRT OPERATOR_LES OPERATOR_GRE OPERATOR_LEE
 %left OPERATOR_PLUS OPERATOR_MINUS
 %left OPERATOR_MUL OPERATOR_DIV OPERATOR_MOD
+%right NOT OPERATOR_PP OPERATOR_MM UMINUS
 
+%left SEMICOLON COLON COMMA DOUBLE_COLON
+%left LEFT_BRACE RIGHT_BRACE
 %left DOT DOUBLE_DOT    
+%left LEFT_PARENTHESIS RIGHT_PARENTHESIS
+%left LEFT_BRACKET RIGHT_BRACKET
+
 
 
 //TODO: expression boolean value
@@ -198,7 +197,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
         printf("(expr) -> term\n");
         $$ = $2;
     }
-    |OPERATOR_MINUS expr    {
+    |OPERATOR_MINUS expr  %prec UMINUS{
         printf("- expr -> term\n");
         if(checkArith($2) == 1){
             $$ = newExpr(arithexpr_e);
@@ -208,7 +207,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
             printf("\033[31mERROR: unary minus expression used outside arithmetic expression \033[0m \n");
             return 1;
         }
-    }
+    } 
     |NOT expr  		{
             printf("not expr -> term\n");
             boolStmt* tmp ;
@@ -263,9 +262,9 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                 }
             }
             else {
-            printf("\033[31mERROR: plus plus expression used outside arithmetic expression \033[0m \n");
-            return 1;
-        }
+                printf("\033[31mERROR: plus plus expression used outside arithmetic expression \033[0m \n");
+                return 1;
+            }
         }
     |lvalue {
                 SymbolTableEntry* temp;
@@ -372,10 +371,6 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
         $$ = $1;
         }
     ;
-
-
-
-
 
 expr: assignexpr    { printf("assignexpr -> expr\n");}
     | expr OPERATOR_PLUS expr   {
@@ -958,7 +953,7 @@ funcdef: FUNCTION ID {
     |FUNCTION {
         funcFlag++;
         char* fname = (char*) malloc(sizeof(char)*50);
-        sprintf( fname, "$anonfunc%d", anonFuncCounter);
+        sprintf( fname, "_anonfunc%d", anonFuncCounter);
         currFunc = strdup(fname);
         anonFuncCounter++;
         insertOffsetStack(offsetStack, fname, loopFlag);
