@@ -117,9 +117,6 @@
 %left LEFT_BRACKET RIGHT_BRACKET
 
 
-
-//TODO: expression boolean value
-
 %%
 program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
@@ -156,7 +153,7 @@ stmt: expr SEMICOLON    {
         if(!isEmptyBoolList($1 -> trueList) || !isEmptyBoolList($1 -> falseList)) {
             patchBoolList(getcurrQuad(), $1 -> trueList);
             patchBoolList(getcurrQuad() + 2, $1 -> falseList);
-            
+
             emit(assign, newExpr_constbool(1), NULL, $1, getcurrQuad() + 1, yylineno);
             emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
             emit(assign, newExpr_constbool(0), NULL, $1, getcurrQuad() + 1, yylineno);
@@ -212,7 +209,6 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
             boolStmt* tmp ;
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
-
             if($2 -> exprType != boolexpr_e) {
 
                 $2 -> trueList = insertBoolStmt(getcurrQuad(), $2 -> trueList);
@@ -221,17 +217,25 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
                 $2 -> falseList = insertBoolStmt(getcurrQuad(), $2 -> falseList);
                 emit(jump, NULL, NULL, NULL, 0, yylineno);
 
-                emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
-                emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-                emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
 
             }
-            
             //SEGFAULT FOR DEBUG
             $$ -> trueList = $2 -> falseList;
             $$ -> falseList = $2 -> trueList;
-            //$2 -> falseList = NULL;
-            //$2 -> trueList = NULL;
+            
+            if($2 -> exprType != constbool_e) {
+                patchBoolList(getcurrQuad(), $$ -> trueList);
+                patchBoolList(getcurrQuad() + 2, $$ -> falseList);
+                emptyBoolList($$ -> trueList);
+                emptyBoolList($$ -> falseList);
+                $$ -> trueList = NULL;
+                $$ -> falseList = NULL;
+            }
+
+            //TODO: when should i print these 3 -->
+            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
         }
     |OPERATOR_PP lvalue {
             printf("++lvalue -> term\n");
@@ -402,7 +406,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         $$ -> symbol = newTemp(scope, yylineno);
         emit(mul, $1, $3, $$, getcurrQuad() + 1, yylineno);
     }
-    | expr OPERATOR_GRT expr    {
+    | expr OPERATOR_GRT expr {
             printf("expr > expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
@@ -449,6 +453,7 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         }
     | expr OPERATOR_EQ expr 	{
             printf("expr == expr -> expr\n");
+
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
@@ -469,13 +474,8 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ -> falseList = insertBoolStmt(getcurrQuad(), $$ -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
-    | expr AND M expr    		{
-        printf("expr and expr -> expr\n");
-        $$ = newExpr(boolexpr_e);
-        $$ -> symbol = newTemp(scope, yylineno);
-        
+    | expr AND {
         if($1 -> exprType != boolexpr_e) {
-
             $1 -> trueList = insertBoolStmt(getcurrQuad(), $1 -> trueList);
             emit(if_eq, newExpr_constbool(1), NULL, $1, 0, yylineno);
 
@@ -483,33 +483,33 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             emit(jump, NULL, NULL, NULL, 0, yylineno);
 
         } 
+    }M expr    {
+        printf("expr and expr -> expr\n");
+        $$ = newExpr(boolexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
 
-        if($3 != 0) {
-            patchBoolList($3, $1 -> trueList);
+        if($4 != 0) {
+            patchBoolList($4, $1 -> trueList);
             emptyBoolList($1 -> trueList);
         } else {
             patchBoolList(getcurrQuad(), $1 -> trueList);
             emptyBoolList($1 -> trueList);
         }
         
-        if($4 -> exprType != boolexpr_e) {
+        if($5 -> exprType != boolexpr_e) {
 
-            $4 -> trueList = insertBoolStmt(getcurrQuad(), $4 -> trueList);
-            emit(if_eq, newExpr_constbool(1), NULL, $4, 0, yylineno);
+            $5 -> trueList = insertBoolStmt(getcurrQuad(), $5 -> trueList);
+            emit(if_eq, newExpr_constbool(1), NULL, $5, 0, yylineno);
 
-            $4 -> falseList = insertBoolStmt(getcurrQuad(), $4 -> falseList);
+            $5 -> falseList = insertBoolStmt(getcurrQuad(), $5 -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
 
         
-        $$ -> trueList = $4 -> trueList;
-        $$ -> falseList = mergeList($1 -> falseList, $4 -> falseList);
-    }
-    | expr OR M expr 		{
-        printf("expr or expr -> expr\n");
-        $$ = newExpr(boolexpr_e);
-        $$ -> symbol = newTemp(scope, yylineno);
-
+        $$ -> trueList = $5 -> trueList;
+        $$ -> falseList = mergeList($1 -> falseList, $5 -> falseList);
+    } 
+    | expr OR {
         if($1 -> exprType != boolexpr_e) {
 
             $1 -> trueList = insertBoolStmt(getcurrQuad(), $1 -> trueList);
@@ -519,27 +519,31 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             emit(jump, NULL, NULL, NULL, 0, yylineno);
 
         } 
+    }M expr 		{
+        printf("expr or expr -> expr\n");
+        $$ = newExpr(boolexpr_e);
+        $$ -> symbol = newTemp(scope, yylineno);
 
-        if($3 != 0) {
-            patchBoolList($3, $1 -> falseList);
+        if($4 != 0) {
+            patchBoolList($4, $1 -> falseList);
             emptyBoolList($1 -> falseList);
         } else {
             patchBoolList(getcurrQuad(), $1 -> falseList);
             emptyBoolList($1 -> falseList);
         }
         
-        if($4 -> exprType != boolexpr_e) {
+        if($5 -> exprType != boolexpr_e) {
 
-            $4 -> trueList = insertBoolStmt(getcurrQuad(), $4 -> trueList);
-            emit(if_eq, newExpr_constbool(1), NULL, $4, 0, yylineno);
+            $5 -> trueList = insertBoolStmt(getcurrQuad(), $5 -> trueList);
+            emit(if_eq, newExpr_constbool(1), NULL, $5, 0, yylineno);
 
-            $4 -> falseList = insertBoolStmt(getcurrQuad(), $4 -> falseList);
+            $5 -> falseList = insertBoolStmt(getcurrQuad(), $5 -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
 
         
-        $$ -> falseList = $4 -> falseList;
-        $$ -> trueList = mergeList($1 -> trueList, $4 -> trueList);
+        $$ -> falseList = $5 -> falseList;
+        $$ -> trueList = mergeList($1 -> trueList, $5 -> trueList);
     } 
     |term   {
             printf("term -> expr\n");

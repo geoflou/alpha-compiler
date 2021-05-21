@@ -432,7 +432,7 @@ int isJumpLabel(quad* q) {
     int result = 0;
 
     if(q -> op != jump && q -> op != if_eq && q -> op != if_noteq &&
-        q -> op != if_lesseq && q -> op != if_greater && q -> op != if_less
+        q -> op != if_lesseq && q -> op != if_greatereq && q -> op != if_less
         && q -> op != if_greater) {
             return 0;
         }
