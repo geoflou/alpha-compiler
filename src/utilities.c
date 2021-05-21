@@ -384,25 +384,48 @@ char* getExpr(Expr* e) {
 
 void printQuads(void) {
     int i = 0;
+    FILE* out;
     quad *index;
-    printf("\n\033[0;35mQUAD# \t OPCODE \t RESULT \t ARG1 \t\t ARG2 \t\tLABEL\033[0m\n");
+
+    out = fopen("quads.txt", "w");
+    if(!out) {
+        printf("Error with the file!\n");
+        return;
+    }
+
+
+    printf("\n\033[0;35mQUAD# \t OPCODE \t RESULT \t ARG1 \t\t ARG2 \t\t LABEL\033[0m\n");
     printf("====================================================================================\n");
+    fprintf(out, "QUAD# \t OPCODE \t\t RESULT \t\t ARG1 \t\t ARG2 \t\t LABEL\n");
+    fprintf(out, "====================================================================================\n");
     while(i < currQuad) {
         index = quads + i;
         if(isJumpLabel(index)) {
             printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i, getOpCode(index), getExpr(index -> result), 
-            getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
+                getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
+            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i, getOpCode(index), getExpr(index -> result), 
+                getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
         } else {
             printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s\n", i, getOpCode(index), getExpr(index -> result), 
-            getExpr(index -> arg1), getExpr(index -> arg2));
+                getExpr(index -> arg1), getExpr(index -> arg2));
+            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s\n", i, getOpCode(index), getExpr(index -> result), 
+                getExpr(index -> arg1), getExpr(index -> arg2));
         }
         
         i++;
     }
+
+    printf("====================================================================================\n\n");
     printf("\n\033[32;1mprogram var offset is : %d\033[0m\n", programVarOffset);
     printf("\033[32;1mlocal var offset is : %d\033[0m\n", functionLocalOffset);
     printf("\033[32;1mformal args offset is : %d\033[0m\n", formalArgOffset);
+    fprintf(out, "====================================================================================\n\n");
+    fprintf(out, "program var offset is : %d\n", programVarOffset);
+    fprintf(out, "local var offset is : %d\n", functionLocalOffset);
+    fprintf(out, "formal args offset is : %d\n", formalArgOffset);
     
+    
+    fclose(out);
 }
 
 int isJumpLabel(quad* q) {

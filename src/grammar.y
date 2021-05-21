@@ -119,7 +119,6 @@
 
 
 //TODO: expression boolean value
-//TODO: PRINT QUADS IN A FILE
 
 %%
 program: set   {printf("set -> program\n");}
