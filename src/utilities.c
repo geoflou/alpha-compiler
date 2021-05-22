@@ -679,6 +679,7 @@ void patchBoolList(int label, boolStmt* head) {
     boolStmt* index;
         index = head;
         while(index != NULL) {
+            //printf("quadno: %d, label: %d\n", index -> quadNo, label);
             patchLabel(index -> quadNo, label);
             index = index -> next;
         }
@@ -712,7 +713,10 @@ void emptyBoolList(boolStmt* head) {
 boolStmt* mergeList(boolStmt* l1, boolStmt* l2) {
     boolStmt* index, *tmp;
 
-    assert(l1 != NULL && l2 != NULL);
+    if(l1 == NULL && l2 == NULL) {
+        assert(0);
+    }
+    
     if(l1 == NULL) {
         return l2;
     }   
@@ -734,3 +738,65 @@ boolStmt* mergeList(boolStmt* l1, boolStmt* l2) {
 
     return l1;
 }
+
+void insertTempQuad(enum iopcode op, Expr* arg1, Expr* arg2, unsigned label, int line, tempQuad* head) {
+    assert(head != NULL);
+    tempQuad* tmp;
+    tempQuad* newNode = (tempQuad*)malloc(sizeof(tempQuad));
+
+    newNode -> op = op;
+    newNode -> arg1 = arg1;
+    newNode -> arg2 = arg2;
+    newNode -> label = label;
+    newNode -> line = line;
+    newNode -> next = NULL;
+
+    if(head -> next == NULL) {
+        head -> next = newNode;
+        return;
+    }
+
+    tmp = head -> next;
+    while(tmp -> next != NULL) {
+        tmp = tmp -> next;
+    }
+    tmp -> next = newNode;
+    
+    return;
+}
+
+void emptyBuffer(tempQuad* head) {
+    if(head == NULL) {
+        return;
+    }
+
+    emptyBuffer(head -> next);
+
+    free(head);
+}
+
+
+int isEmptyBuffer(tempQuad* head) {
+    assert(head != NULL);
+
+    if(head -> next == NULL) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void emitTempQuads(tempQuad* head) {
+    assert(head != NULL);
+    tempQuad* index;
+
+    index = head -> next;
+    while(index != NULL) {
+        printf("label: %d \n", index -> label);
+        emit(index -> op, index -> arg1, NULL, index -> arg2, index -> label, index -> line);
+        index = index -> next;
+    }
+
+    return;
+}
+

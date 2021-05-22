@@ -25,6 +25,8 @@
 
     MinasTirithTouSpitiouMou* offsetStack = (MinasTirithTouSpitiouMou*) 0;
 
+    tempQuad* annaBuffer = (tempQuad *) 0;
+
     Function* temp_func;
     Expr* lushAlex = (Expr *) 0;
     int arg_index = 0;
@@ -116,6 +118,8 @@
 %left LEFT_PARENTHESIS RIGHT_PARENTHESIS
 %left LEFT_BRACKET RIGHT_BRACKET
 
+
+//TODO: t[not]
 
 %%
 program: set   {printf("set -> program\n");}
@@ -219,23 +223,18 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
 
 
             }
-            //SEGFAULT FOR DEBUG
-            $$ -> trueList = $2 -> falseList;
-            $$ -> falseList = $2 -> trueList;
-            
-            if($2 -> exprType != constbool_e) {
-                patchBoolList(getcurrQuad(), $$ -> trueList);
-                patchBoolList(getcurrQuad() + 2, $$ -> falseList);
-                emptyBoolList($$ -> trueList);
-                emptyBoolList($$ -> falseList);
-                $$ -> trueList = NULL;
-                $$ -> falseList = NULL;
-            }
 
-            //TODO: when should i print these 3 -->
-            emit(assign, newExpr_constbool(1), NULL, $$, getcurrQuad() + 1, yylineno);
-            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
-            emit(assign, newExpr_constbool(0), NULL, $$, getcurrQuad() + 1, yylineno);
+            //SEGFAULT FOR DEBUG
+            tmp = $2 -> trueList;
+            $2 -> trueList = $2 -> falseList;
+            $2 -> falseList = tmp;
+
+            $$ -> trueList = $2 -> trueList;
+            $$ -> falseList = $2 -> falseList;
+
+            insertTempQuad(assign, newExpr_constbool(1), $$, getcurrQuad() + 1, yylineno, annaBuffer);
+            insertTempQuad(jump, NULL, NULL, getcurrQuad() + 3, yylineno, annaBuffer);
+            insertTempQuad(assign, newExpr_constbool(0), $$, getcurrQuad() + 1, yylineno, annaBuffer);
         }
     |OPERATOR_PP lvalue {
             printf("++lvalue -> term\n");
@@ -411,6 +410,17 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
+            if(!checkArith($1) || !checkArith($3)) {
+                printf("\033[31mERROR: Invalid use of comparison operator on boolean expression!\033[0m \n");
+                return 1;
+            }
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+            }
+
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_greater, $1, $3, NULL, 0, yylineno);
 
@@ -423,6 +433,17 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
+            if(!checkArith($1) || !checkArith($3)) {
+                printf("\033[31mERROR: Invalid use of comparison operator on boolean expression!\033[0m \n");
+                return 1;
+            }
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+            }
+
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_greatereq, $1, $3, NULL, 0, yylineno);
 
@@ -434,6 +455,17 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
+            if(!checkArith($1) || !checkArith($3)) {
+                printf("\033[31mERROR: Invalid use of comparison operator on boolean expression!\033[0m \n");
+                return 1;
+            }
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+            }
+
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_less, $1, $3, NULL, 0, yylineno);
 
@@ -444,6 +476,17 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             printf("expr <= expr -> expr\n");
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
+            
+            if(!checkArith($1) || !checkArith($3)) {
+                printf("\033[31mERROR: Invalid use of comparison operator on boolean expression!\033[0m \n");
+                return 1;
+            }
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+            }
 
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_lesseq, $1, $3, NULL, 0, yylineno);
@@ -453,9 +496,36 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         }
     | expr OPERATOR_EQ expr 	{
             printf("expr == expr -> expr\n");
-
+            
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                if(!isEmptyBoolList($1 -> falseList)) {
+                    patchBoolList(getcurrQuad() + 2, $1 -> falseList);
+                    emptyBoolList($1 -> falseList);
+                    $1 -> falseList -> next = NULL;
+
+                    patchBoolList(getcurrQuad(), $1 -> trueList);
+                    emptyBoolList($1 -> trueList);
+                    $1 -> trueList -> next = NULL;
+                }
+
+                if(!isEmptyBoolList($3 -> falseList)) {
+                    patchBoolList(getcurrQuad() + 2, $3 -> falseList);
+                    emptyBoolList($3 -> falseList);
+                    $3 -> falseList -> next = NULL;
+
+                    patchBoolList(getcurrQuad(), $3 -> trueList);
+                    emptyBoolList($3 -> trueList);
+                    $3 -> trueList -> next = NULL;
+                }
+
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+
+            }
 
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_eq, $1, $3, NULL, 0, yylineno);
@@ -468,6 +538,33 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             $$ = newExpr(boolexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
 
+            if(!isEmptyBuffer(annaBuffer)) {
+                if(!isEmptyBoolList($1 -> falseList)) {
+                    patchBoolList(getcurrQuad() + 2, $1 -> falseList);
+                    emptyBoolList($1 -> falseList);
+                    $1 -> falseList -> next = NULL;
+
+                    patchBoolList(getcurrQuad(), $1 -> trueList);
+                    emptyBoolList($1 -> trueList);
+                    $1 -> trueList -> next = NULL;
+                }
+
+                if(!isEmptyBoolList($3 -> falseList)) {
+                    patchBoolList(getcurrQuad() + 2, $3 -> falseList);
+                    emptyBoolList($3 -> falseList);
+                    $3 -> falseList -> next = NULL;
+
+                    patchBoolList(getcurrQuad(), $3 -> trueList);
+                    emptyBoolList($3 -> trueList);
+                    $3 -> trueList -> next = NULL;
+                }
+
+                emitTempQuads(annaBuffer);
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+
+            }
+
             $$ -> trueList = insertBoolStmt(getcurrQuad(), $$ -> trueList);
             emit(if_noteq, $1, $3, NULL, 0, yylineno);
 
@@ -475,6 +572,13 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
     | expr AND {
+
+        if(!isEmptyBuffer(annaBuffer)) {
+            
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         if($1 -> exprType != boolexpr_e) {
             $1 -> trueList = insertBoolStmt(getcurrQuad(), $1 -> trueList);
             emit(if_eq, newExpr_constbool(1), NULL, $1, 0, yylineno);
@@ -497,19 +601,22 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
         }
         
         if($5 -> exprType != boolexpr_e) {
-
             $5 -> trueList = insertBoolStmt(getcurrQuad(), $5 -> trueList);
             emit(if_eq, newExpr_constbool(1), NULL, $5, 0, yylineno);
 
             $5 -> falseList = insertBoolStmt(getcurrQuad(), $5 -> falseList);
             emit(jump, NULL, NULL, NULL, 0, yylineno);
         }
-
         
         $$ -> trueList = $5 -> trueList;
         $$ -> falseList = mergeList($1 -> falseList, $5 -> falseList);
     } 
     | expr OR {
+        if(!isEmptyBuffer(annaBuffer)) {      
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+        
         if($1 -> exprType != boolexpr_e) {
 
             $1 -> trueList = insertBoolStmt(getcurrQuad(), $1 -> trueList);
@@ -672,6 +779,24 @@ member: lvalue DOT ID   {
     |lvalue LEFT_BRACE expr RIGHT_BRACE 
     {
         printf("lvalue[expr] -> member\n");
+
+        if(!isEmptyBuffer(annaBuffer)) {
+
+            if(!isEmptyBoolList($3 -> falseList)) {
+                patchBoolList(getcurrQuad() + 2, $3 -> falseList);
+                emptyBoolList($3 -> falseList);
+                $3 -> falseList -> next = NULL;
+
+                patchBoolList(getcurrQuad(), $3 -> trueList);
+                emptyBoolList($3 -> trueList);
+                $3 -> trueList -> next = NULL;
+            }
+            
+            emitTempQuads(annaBuffer);
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         $1 = emit_ifTableItem($1,scope,yylineno);
         $$ = newExpr(tableitem_e);
         $$ -> symbol = $1 -> symbol;
@@ -762,6 +887,11 @@ elist: expr {
             exprStack -> next = $1;
         }
 
+        if(!isEmptyBuffer(annaBuffer)) {
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         if(!isEmptyBoolList($1 -> trueList) || !isEmptyBoolList($1 -> falseList)) {
             patchBoolList(getcurrQuad(), $1 -> trueList);
             patchBoolList(getcurrQuad() + 2, $1 -> falseList);
@@ -842,6 +972,35 @@ indexed: indexedelem {
 
 indexedelem: LEFT_BRACKET expr COLON expr RIGHT_BRACKET {
         printf("{expr : expr} -> indexed elem\n");
+
+        //CHECK THIS
+        if(!isEmptyBuffer(annaBuffer)) {
+
+            if(!isEmptyBoolList($2 -> falseList)) {
+                patchBoolList(getcurrQuad() + 2, $2 -> falseList);
+                emptyBoolList($2 -> falseList);
+                $2 -> falseList -> next = NULL;
+
+                patchBoolList(getcurrQuad(), $2 -> trueList);
+                emptyBoolList($2 -> trueList);
+                $2 -> trueList -> next = NULL;
+            }
+
+            if(!isEmptyBoolList($4 -> falseList)) {
+                patchBoolList(getcurrQuad() + 2, $4 -> falseList);
+                emptyBoolList($4 -> falseList);
+                $4 -> falseList -> next = NULL;
+
+                patchBoolList(getcurrQuad(), $4 -> trueList);
+                emptyBoolList($4 -> trueList);
+                $4 -> trueList -> next = NULL;
+            }
+            
+            emitTempQuads(annaBuffer);
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         Expr* t = newExpr(tableitem_e);
         t -> index = $2;
         t -> indexedelem_value = $4;       
@@ -1107,6 +1266,12 @@ idlist: ID {
     ;
 
 ifprefix: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+
+    if(!isEmptyBuffer(annaBuffer)) {
+        emptyBuffer(annaBuffer -> next);
+        annaBuffer -> next = NULL;
+    }
+
     if(!isEmptyBoolList($3 -> trueList) || !isEmptyBoolList($3 -> falseList)) {
             patchBoolList(getcurrQuad(), $3 -> trueList);
             patchBoolList(getcurrQuad() + 2, $3 -> falseList);
@@ -1147,6 +1312,12 @@ whilestart: WHILE {loopFlag++; $$ = getcurrQuad();}
     ;
 
 whilecond: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS {
+
+        if(!isEmptyBuffer(annaBuffer)) {
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         if(!isEmptyBoolList($2 -> trueList) || !isEmptyBoolList($2 -> falseList)) {
             patchBoolList(getcurrQuad(), $2 -> trueList);
             patchBoolList(getcurrQuad() + 2, $2 -> falseList);
@@ -1189,6 +1360,12 @@ M: {$$ = getcurrQuad();}
 forprefix: FOR LEFT_PARENTHESIS elist SEMICOLON M expr SEMICOLON {
     loopFlag++;
     
+    if(!isEmptyBuffer(annaBuffer)) {
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+    }
+
+
     if(!isEmptyBoolList($6 -> trueList) || !isEmptyBoolList($6 -> falseList)) {
             patchBoolList(getcurrQuad(), $6 -> trueList);
             patchBoolList(getcurrQuad() + 2, $6 -> falseList);
@@ -1228,6 +1405,24 @@ forstmt: forprefix N elist {exprStack -> next = NULL;} RIGHT_PARENTHESIS N stmt 
 
 returnstmt: RETURN expr SEMICOLON   {
         printf("return expr ; -> returnstmt\n");
+
+        if(!isEmptyBuffer(annaBuffer)) {
+
+            if(!isEmptyBoolList($2 -> falseList)) {
+                patchBoolList(getcurrQuad() + 2, $2 -> falseList);
+                emptyBoolList($2 -> falseList);
+                $2 -> falseList -> next = NULL;
+
+                patchBoolList(getcurrQuad(), $2 -> trueList);
+                emptyBoolList($2 -> trueList);
+                $2 -> trueList -> next = NULL;
+            }
+            
+            emitTempQuads(annaBuffer);
+            emptyBuffer(annaBuffer -> next);
+            annaBuffer -> next = NULL;
+        }
+
         emit(ret, NULL, NULL, $2, getcurrQuad() + 1, yylineno);
         insertSpecialStmt(getcurrQuad(), funcFlag, retStack);
         emit(jump,NULL,NULL,NULL,0,yylineno);
@@ -1270,7 +1465,8 @@ int main(int argc, char* argv[]){
     retStack = (specialStmt*) malloc(sizeof(specialStmt));
     retStack -> next = NULL;
 
-
+    annaBuffer = (tempQuad*)malloc(sizeof(tempQuad));
+    annaBuffer -> next = NULL;
 
     initTable();
 

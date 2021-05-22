@@ -100,6 +100,15 @@ typedef struct bool_stmt {
     struct bool_stmt* next;
 } boolStmt;
 
+typedef struct temp_quad {
+    enum iopcode op;
+    Expr* arg1;
+    Expr* arg2;
+    unsigned label;
+    int line;
+    struct temp_quad* next;
+} tempQuad;
+
 
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
@@ -188,4 +197,12 @@ void emptyBoolList(boolStmt* head);
 int isEmptyBoolList(boolStmt* head);
 
 boolStmt* mergeList(boolStmt* l1, boolStmt* l2);
+
+void insertTempQuad(enum iopcode op, Expr* arg1, Expr* arg2, unsigned label, int line, tempQuad* head);
+
+void emptyBuffer(tempQuad* head);
+
+int isEmptyBuffer(tempQuad* head);
+
+void emitTempQuads(tempQuad* head);
 
