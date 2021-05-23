@@ -2,7 +2,11 @@
 
 int i;
 
-SymbolTableEntry *SymbolTable[1034];
+SymbolTableEntry *SymbolTable[SYMBOL_TABLE_BUCKETS];
+
+ScopeNode* scopes = NULL;
+unsigned currentMaxScope = 0;
+unsigned totalScopes = 0;
 
 
 void initTable(void){
@@ -17,20 +21,15 @@ void initTable(void){
         SymbolTable[i] -> varVal = NULL;
     }
 
+    expandScopes(5);
     insertLibraryFunctions();
 
     return;
 }
 
-
 int hashForBucket(char *symbolName){
     assert(symbolName != NULL);
     return (atoi(symbolName) * HASH_NUMBER) % NON_SCOPE_BUCKETS;
-}
-
-
-int hashForScope(int symbolScope){
-    return (symbolScope % SCOPE_BUCKETS) + NON_SCOPE_BUCKETS;
 }
 
 
@@ -56,14 +55,13 @@ void insertEntry(SymbolTableEntry *symbol){
     scopeLinkSymbol -> isActive = symbol ->isActive;
     scopeLinkSymbol -> varVal = symbol -> varVal;
     scopeLinkSymbol -> funcVal = symbol -> funcVal;
+    scopeLinkSymbol -> offset = symbol -> offset;
     scopeLinkSymbol -> next = NULL;
     scopeLinkSymbol -> type = symbol -> type;
 
     bucket = hashForBucket(name);
-    scopeLink = hashForScope(scope);
 
     assert(SymbolTable[bucket] != NULL);
-    assert(SymbolTable[scopeLink] != NULL);
 
     if(SymbolTable[bucket] -> next == NULL){
         SymbolTable[bucket] -> next = symbol;
@@ -73,13 +71,7 @@ void insertEntry(SymbolTableEntry *symbol){
         SymbolTable[bucket] -> next = symbol;
     }
 
-    if(SymbolTable[scopeLink] -> next == NULL){
-        SymbolTable[scopeLink] -> next = scopeLinkSymbol;
-    }
-    else{
-        scopeLinkSymbol -> next = SymbolTable[scopeLink] -> next;
-        SymbolTable[scopeLink] -> next = scopeLinkSymbol;
-    }
+    insertInScope(scopeLinkSymbol);
 
     return;
 }
@@ -132,17 +124,25 @@ SymbolTableEntry *lookupforCalls(char *name, int scope){
 SymbolTableEntry *lookupScope(char *name, int scope){
     int bucket;
     SymbolTableEntry *symbolIndex;
+    ScopeNode* scopeIndex;
     Variable *varTMP;
     Function *funcTMP;
 
-    assert(name != NULL);
-
-    bucket = hashForScope(scope);
-    if(SymbolTable[bucket] == NULL){
+    if(scope >= totalScopes - 1) {
         return NULL;
     }
 
-    symbolIndex = SymbolTable[bucket] -> next;
+    assert(name != NULL);
+
+    scopeIndex = scopes;
+    while(scopeIndex != NULL && scopeIndex -> label != scope) {
+        scopeIndex = scopeIndex -> next;
+    }
+
+    symbolIndex = scopeIndex -> list -> next;
+    if(symbolIndex == NULL) {
+        return NULL;
+    }
 
     while(symbolIndex != NULL){
         
@@ -165,7 +165,6 @@ SymbolTableEntry *lookupScope(char *name, int scope){
     return NULL;
 }
 
-
 void hideEntries(int scope){
     hideFromScopeLink(scope);
     hideFromBuckets(scope);
@@ -175,13 +174,23 @@ void hideEntries(int scope){
 void hideFromScopeLink(int scope){
     int bucket;
     SymbolTableEntry *symbolIndex;
+    ScopeNode* scopeIndex = scopes;
 
-    bucket = hashForScope(scope);
-    if(SymbolTable[bucket] == NULL){
+    if(scope > currentMaxScope) {
         return;
     }
 
-    symbolIndex = SymbolTable[bucket] -> next;
+    while(scopeIndex != NULL && scopeIndex -> label != scope) {
+        scopeIndex = scopeIndex -> next;
+    }
+
+    assert(scopeIndex != NULL);
+    
+    symbolIndex = scopeIndex -> list -> next;
+    if(symbolIndex == NULL){
+        return;
+    }
+
 
     while(symbolIndex != NULL){
         symbolIndex -> isActive = 0;
@@ -206,7 +215,7 @@ void hideFromBuckets(int scope){
         symbolIndex = SymbolTable[i] -> next;
 
         while(symbolIndex != NULL){
- 
+
             if(symbolIndex -> varVal != NULL){
                 varTMP = symbolIndex -> varVal;
                 if(varTMP -> scope == scope){
@@ -228,26 +237,27 @@ void hideFromBuckets(int scope){
     return;
 }
 
-
 void printEntries(void){
     int i;
     SymbolTableEntry *symbolIndex;
+    ScopeNode* scopeIndex = scopes -> next;
     Variable *varTMP;
     Function *funcTMP; 
 
-    for(i = 0;i < 10;i++){
+    for(i = 0;i <= currentMaxScope;i++){
 
         printf("---------------  Scope #%d  ---------------\n", i);
-        symbolIndex = SymbolTable[NON_SCOPE_BUCKETS + i];
+        symbolIndex = scopeIndex -> list -> next;
 
         if(symbolIndex == NULL){
+            scopeIndex = scopeIndex -> next;
             continue;
         }
 
-        symbolIndex = symbolIndex -> next;
         printScope(symbolIndex);
-
+        scopeIndex = scopeIndex -> next;
     }
+    printf("-------------------------------------------\n");
     return;
 }
 
@@ -287,7 +297,6 @@ char *getEntryType(SymbolTableEntry *symbol){
     }
 }
 
-
 char *getEntryName(SymbolTableEntry *symbol){
     Variable *varTMP;
     Function *funcTMP;
@@ -304,7 +313,6 @@ char *getEntryName(SymbolTableEntry *symbol){
 
     assert(0);
 }
-
 
 int getEntryLine(SymbolTableEntry *symbol){
     Variable *varTMP;
@@ -323,7 +331,6 @@ int getEntryLine(SymbolTableEntry *symbol){
     assert(0);
 }
 
-
 int getEntryScope(SymbolTableEntry *symbol){
     Variable *varTMP;
     Function *funcTMP;
@@ -340,7 +347,6 @@ int getEntryScope(SymbolTableEntry *symbol){
 
     assert(0);
 }
-
 
 void insertLibraryFunctions(void){
     insertFunction("print");
@@ -461,3 +467,79 @@ int comparelibfunc(char *name){
 
     return 0;
 }
+
+SymbolTableEntry* updateEntry(char* name, int totals, int scope) {
+    SymbolTableEntry* s;
+    s = lookupScope(name, scope);
+    assert(s !=NULL);
+    s->funcVal->totalLocalVars = totals;
+    return s;
+}
+
+void expandScopes(int maxScope) {
+    int i = 0;
+    while(i < maxScope) {
+        createScope();
+        i++;
+    }
+    return;
+}
+
+void createScope(void) {
+    ScopeNode* index = scopes;
+    ScopeNode* newScope = (ScopeNode*) malloc(sizeof(ScopeNode));
+    
+    newScope -> next = NULL;
+    newScope -> list = (SymbolTableEntry*) malloc(sizeof(SymbolTableEntry));
+    newScope -> label = totalScopes;
+    totalScopes++;
+
+    if(scopes == NULL) {
+        scopes = (ScopeNode *) malloc(sizeof(ScopeNode));
+        scopes -> label = -1;
+        scopes -> list = NULL;
+        scopes -> next = newScope;
+        return;
+    }
+
+    index = scopes;
+    while(index -> next != NULL) {
+        index = index -> next;
+    }
+
+    index -> next = newScope;
+
+    return;
+}
+
+void insertInScope(SymbolTableEntry * entry) {
+    assert(entry != NULL);
+    int scope = getEntryScope(entry);
+    ScopeNode* scopeIndex = scopes;
+    SymbolTableEntry* tmp;
+
+    if(scope >= totalScopes - 1) {
+        expandScopes(scope);
+    }
+    assert(scopeIndex != NULL);
+    while(scopeIndex != NULL && scopeIndex -> label != scope) {
+        scopeIndex = scopeIndex -> next;
+    }
+
+    if(scope > currentMaxScope) {
+        currentMaxScope = scope;
+    }
+
+    tmp = scopeIndex -> list;
+    if(tmp -> next == NULL) {
+        tmp -> next = entry;
+        return;
+    }
+
+    entry -> next = tmp -> next;
+    tmp -> next = entry;
+
+    return;
+
+}
+
