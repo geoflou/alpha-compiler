@@ -119,8 +119,6 @@
 %left LEFT_BRACKET RIGHT_BRACKET
 
 
-//TODO: t[not]
-
 %%
 program: set   {printf("set -> program\n");}
     |   {printf("EMPTY -> program\n");}
@@ -574,7 +572,6 @@ expr: assignexpr    { printf("assignexpr -> expr\n");}
     | expr AND {
 
         if(!isEmptyBuffer(annaBuffer)) {
-            
             emptyBuffer(annaBuffer -> next);
             annaBuffer -> next = NULL;
         }
@@ -674,6 +671,12 @@ assignexpr: lvalue {
             }
             OPERATOR_ASSIGN expr {
             printf("lvalue = expr -> assignexpr\n");
+
+            if(!isEmptyBuffer(annaBuffer)) {
+                emptyBuffer(annaBuffer -> next);
+                annaBuffer -> next = NULL;
+            }
+
             if(!isEmptyBoolList($4 -> trueList) || !isEmptyBoolList($4 -> falseList)) {
                 patchBoolList(getcurrQuad(), $4 -> trueList);
                 patchBoolList(getcurrQuad() + 2, $4 -> falseList);
@@ -780,21 +783,17 @@ member: lvalue DOT ID   {
     {
         printf("lvalue[expr] -> member\n");
 
-        if(!isEmptyBuffer(annaBuffer)) {
+        if(!isEmptyBoolList($3 -> trueList) || !isEmptyBoolList($3 -> falseList)) {
+            patchBoolList(getcurrQuad(), $3 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $3 -> falseList);
 
-            if(!isEmptyBoolList($3 -> falseList)) {
-                patchBoolList(getcurrQuad() + 2, $3 -> falseList);
-                emptyBoolList($3 -> falseList);
-                $3 -> falseList -> next = NULL;
-
-                patchBoolList(getcurrQuad(), $3 -> trueList);
-                emptyBoolList($3 -> trueList);
-                $3 -> trueList -> next = NULL;
-            }
+            emit(assign, newExpr_constbool(1), NULL, $3, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $3, getcurrQuad() + 1, yylineno);
             
-            emitTempQuads(annaBuffer);
-            emptyBuffer(annaBuffer -> next);
-            annaBuffer -> next = NULL;
+            emptyBoolList($3 -> trueList);
+            emptyBoolList($3 -> falseList);
+            
         }
 
         $1 = emit_ifTableItem($1,scope,yylineno);
@@ -806,7 +805,26 @@ member: lvalue DOT ID   {
             printf("call.id -> member\n"); 
             $$ = member_item($1, yylval.strVal, scope, yylineno);
         } 
-    |call LEFT_BRACE expr RIGHT_BRACE   {printf("call[expr] -> member\n");}
+    |call LEFT_BRACE expr RIGHT_BRACE   {
+
+        printf("call[expr] -> member\n");
+        if(!isEmptyBoolList($3 -> trueList) || !isEmptyBoolList($3 -> falseList)) {
+            patchBoolList(getcurrQuad(), $3 -> trueList);
+            patchBoolList(getcurrQuad() + 2, $3 -> falseList);
+
+            emit(assign, newExpr_constbool(1), NULL, $3, getcurrQuad() + 1, yylineno);
+            emit(jump, NULL, NULL, NULL, getcurrQuad() + 2, yylineno);
+            emit(assign, newExpr_constbool(0), NULL, $3, getcurrQuad() + 1, yylineno);
+            
+            emptyBoolList($3 -> trueList);
+            emptyBoolList($3 -> falseList);
+            
+        }
+        $1 = emit_ifTableItem($1,scope,yylineno);
+        $$ = newExpr(tableitem_e);
+        $$ -> symbol = $1 -> symbol;
+        $$ -> index = $3;
+    }
     ;
 
 call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS {

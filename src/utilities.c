@@ -679,7 +679,6 @@ void patchBoolList(int label, boolStmt* head) {
     boolStmt* index;
         index = head;
         while(index != NULL) {
-            //printf("quadno: %d, label: %d\n", index -> quadNo, label);
             patchLabel(index -> quadNo, label);
             index = index -> next;
         }
@@ -792,7 +791,6 @@ void emitTempQuads(tempQuad* head) {
 
     index = head -> next;
     while(index != NULL) {
-        printf("label: %d \n", index -> label);
         emit(index -> op, index -> arg1, NULL, index -> arg2, index -> label, index -> line);
         index = index -> next;
     }
