@@ -60,8 +60,21 @@ typedef struct vmarg {
 
 typedef struct instruction {
     enum vmopcode opcode;
-    vmarg* result;
-    vmarg* arg1;
-    vmarg* arg2;
+    vmArg* result;
+    vmArg* arg1;
+    vmArg* arg2;
     unsigned srcLine;
 } instruction;
+
+unsigned consts_newstring(char* s);
+unsigned consts_newnumber(double n);
+unsigned libfuncs_newused(char* s);
+unsigned userfuncs_newfunc(SymbolTableEntry* sym);
+
+void make_operand(Expr* e, vmArg* arg);
+
+void make_number_operand(vmArg* arg, double val);
+
+void make_bool_operand(vmArg* arg, unsigned val);
+
+void make_retval_operand(vmArg* arg);
