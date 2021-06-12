@@ -31,12 +31,20 @@ typedef struct Function{
     unsigned int totalLocalVars;
 } Function;
 
+typedef enum scopespace_t {
+    programvar,
+    functionlocal,
+    formalarg
+} scopespace_t;
+
+
 typedef struct SymbolTableEntry{
     int isActive;
     Variable *varVal;
     Function *funcVal;
     enum SymbolType type;
     int offset;
+    scopespace_t scopespace;
     struct SymbolTableEntry *next;
 } SymbolTableEntry;
 
@@ -45,6 +53,7 @@ typedef struct ScopeNode {
     struct ScopeNode* next;
     struct SymbolTableEntry* list;
 } ScopeNode;
+
 
 void initTable(void);
 

@@ -109,7 +109,6 @@ typedef struct temp_quad {
     struct temp_quad* next;
 } tempQuad;
 
-
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
@@ -206,3 +205,8 @@ int isEmptyBuffer(tempQuad* head);
 
 void emitTempQuads(tempQuad* head);
 
+scopespace_t currScopeSpace(void);
+
+unsigned getTotal(void);
+
+quad* getQuads(void);

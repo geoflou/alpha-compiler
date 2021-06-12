@@ -66,6 +66,12 @@ typedef struct instruction {
     unsigned srcLine;
 } instruction;
 
+#define FINAL_EXPAND_SIZE 1024
+#define FINAL_CURR_SIZE (totalFinal * sizeof(instruction))
+#define FINAL_NEW_SIZE (EXPAND_SIZE * sizeof(instruction) + FINAL_CURR_SIZE)
+
+typedef void (*generator_func_t)(quad *);
+
 unsigned consts_newstring(char* s);
 unsigned consts_newnumber(double n);
 unsigned libfuncs_newused(char* s);
@@ -78,3 +84,9 @@ void make_number_operand(vmArg* arg, double val);
 void make_bool_operand(vmArg* arg, unsigned val);
 
 void make_retval_operand(vmArg* arg);
+
+void expandFinal(void);
+
+void emitFinalQuad(instruction *t);
+
+void generate(void);

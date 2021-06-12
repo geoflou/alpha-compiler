@@ -1,7 +1,7 @@
 %{
     #include <stdlib.h>
     #include <stdio.h>
-    #include "utilities.h"
+    #include "finalCode.h"
     #include "grammar.h"
 
     int yyerror(char* message);
@@ -1486,6 +1486,17 @@ int main(int argc, char* argv[]){
     annaBuffer = (tempQuad*)malloc(sizeof(tempQuad));
     annaBuffer -> next = NULL;
 
+    if(argc < 2) {
+        printf("Not file given in input");
+        return -1;
+    }
+
+    FILE* in = freopen(argv[1], "r", stdin);
+    if(!in) {
+        printf("Error with the file");
+        return -1;
+    }
+
     initTable();
 
     found_error = yyparse();
@@ -1493,8 +1504,11 @@ int main(int argc, char* argv[]){
     //printEntries();
     
     if(!found_error) {
-        printQuads();
+       // printQuads();
+        generate();
     }
+
+    fclose(in);
 
     return 0;
 }

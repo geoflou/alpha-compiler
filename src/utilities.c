@@ -29,6 +29,7 @@ void insertID(char *name, int scope, int line) {
         new_entry->isActive = 1;
         new_entry->varVal = new_var;
         new_entry->funcVal = NULL;
+        new_entry->scopespace = currScopeSpace();
         new_entry->offset = currScopeOffset() + 1;
         incScopeOffset();
 
@@ -66,6 +67,7 @@ void insertLocalID(char *name, int scope, int line) {
 
         new_entry->isActive = 1;
         new_entry->varVal = new_var;
+        new_entry->scopespace = currScopeSpace();
         new_entry->offset = currScopeOffset() + 1;
         incScopeOffset();
         new_entry->funcVal = NULL;
@@ -103,6 +105,7 @@ void insertFormal(char *name, int scope, int line) {
 
     new_entry->isActive = 1;
     new_entry->varVal = new_var;
+    new_entry->scopespace = currScopeSpace();
     new_entry->offset = currScopeOffset() + 1;
     incScopeOffset();
     new_entry->funcVal = NULL;
@@ -192,6 +195,9 @@ SymbolTableEntry *newTemp(int scope, int line) {
     sym->varVal = newVar;
     scope == 0 ? (sym->type = GLOBAL) : (sym->type = LOCAL);
     sym->isActive = 1;
+    sym->scopespace = currScopeSpace();
+    sym->offset = currScopeOffset() + 1;
+    incScopeOffset();
     sym->funcVal = NULL;
     sym->next = NULL;
 
@@ -401,14 +407,14 @@ void printQuads(void) {
     while(i < currQuad) {
         index = quads + i;
         if(isJumpLabel(index)) {
-            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i, getOpCode(index), getExpr(index -> result), 
+            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i + 1, getOpCode(index), getExpr(index -> result), 
                 getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
-            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i, getOpCode(index), getExpr(index -> result), 
+            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s \t %-10d \n", i + 1, getOpCode(index), getExpr(index -> result), 
                 getExpr(index -> arg1), getExpr(index -> arg2), index -> label);
         } else {
-            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s\n", i, getOpCode(index), getExpr(index -> result), 
+            printf("#%d \t %-10s \t %-10s \t %-10s \t %-10s\n", i + 1, getOpCode(index), getExpr(index -> result), 
                 getExpr(index -> arg1), getExpr(index -> arg2));
-            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s\n", i, getOpCode(index), getExpr(index -> result), 
+            fprintf(out, "#%d \t\t %-10s \t %-10s \t %-10s \t %-10s\n", i + 1, getOpCode(index), getExpr(index -> result), 
                 getExpr(index -> arg1), getExpr(index -> arg2));
         }
         
@@ -798,3 +804,22 @@ void emitTempQuads(tempQuad* head) {
     return;
 }
 
+scopespace_t currScopeSpace(void) {
+    if(scopeSpaceCounter == 1) {
+        return programvar;
+    }
+
+    if(scopeSpaceCounter % 2 == 0) {
+        return formalarg;
+    }
+
+    return functionlocal;
+}
+
+unsigned getTotal(void) {
+    return total;
+}
+
+quad* getQuads(void) {
+    return quads;
+}
