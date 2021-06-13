@@ -1,12 +1,12 @@
 #include "SymbolTable.h"
 
 enum iopcode{
-    assign,
     add,
     sub,
     mul,
     divide,
     mod,
+    assign,
     uminus,
     and,
     or,

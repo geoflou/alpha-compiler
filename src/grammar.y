@@ -1504,8 +1504,9 @@ int main(int argc, char* argv[]){
     //printEntries();
     
     if(!found_error) {
-       // printQuads();
-        generate();
+        //printQuads();
+        generateFinalCode();
+        printFinalQuads();
     }
 
     fclose(in);

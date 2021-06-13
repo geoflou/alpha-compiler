@@ -64,6 +64,7 @@ typedef struct instruction {
     vmArg* arg1;
     vmArg* arg2;
     unsigned srcLine;
+    unsigned t_address;
 } instruction;
 
 #define FINAL_EXPAND_SIZE 1024
@@ -89,4 +90,16 @@ void expandFinal(void);
 
 void emitFinalQuad(instruction *t);
 
-void generate(void);
+void generateFinalCode(void);
+
+void generate(enum vmopcode op, quad* q);
+
+void generate_ADD(quad* q);
+void generate_SUB(quad* q);
+void generate_MUL(quad* q);
+void generate_DIV(quad* q);
+void generate_MOD(quad* q);
+
+void printFinalQuads(void);
+
+char* getVmOpcode(instruction* t);
