@@ -200,7 +200,7 @@ term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS   {
         if(checkArith($2) == 1){
             $$ = newExpr(arithexpr_e);
             $$ -> symbol = newTemp(scope, yylineno);
-            emit(uminus, $2, NULL, $$, getcurrQuad()+1, yylineno);
+            emit(mul, $2, newExpr_constnum(-1), $$, getcurrQuad()+1, yylineno);
         }else {
             printf("\033[31mERROR: unary minus expression used outside arithmetic expression \033[0m \n");
             return 1;
@@ -1504,7 +1504,7 @@ int main(int argc, char* argv[]){
     //printEntries();
     
     if(!found_error) {
-        //printQuads();
+        printQuads();
         generateFinalCode();
         printFinalQuads();
     }

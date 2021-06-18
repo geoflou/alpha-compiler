@@ -7,7 +7,6 @@ enum vmopcode {
     mul_v,
     divide_v,
     mod_v,
-    uminus_v,
     
     and_v,
     or_v,
@@ -67,6 +66,21 @@ typedef struct instruction {
     unsigned t_address;
 } instruction;
 
+typedef struct constString {
+    char* value;
+    struct constString *next;
+} constString;
+
+typedef struct libFunc {
+    char* name;
+    struct libFunc *next;
+} libFunc;
+
+typedef struct constNum {
+    double value;
+    struct constNum *next;
+} constNum;
+
 #define FINAL_EXPAND_SIZE 1024
 #define FINAL_CURR_SIZE (totalFinal * sizeof(instruction))
 #define FINAL_NEW_SIZE (EXPAND_SIZE * sizeof(instruction) + FINAL_CURR_SIZE)
@@ -99,6 +113,10 @@ void generate_SUB(quad* q);
 void generate_MUL(quad* q);
 void generate_DIV(quad* q);
 void generate_MOD(quad* q);
+void generate_NEWTABLE(quad* q);
+void generate_TABLEGETELEM(quad* q);
+void generate_TABLESETELEM(quad* q);
+void generate_ASSIGN(quad* q);
 
 void printFinalQuads(void);
 

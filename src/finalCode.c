@@ -4,6 +4,10 @@ instruction *finalQuads = (instruction *) 0;
 unsigned totalFinal = 0;
 unsigned currFinalQuad = 0;
 
+constString *constStringsArray = (constString *) 0;
+constNum *constNumsArray = (constNum *) 0;
+libFunc* libFuncs = (libFunc *) 0;
+
 //NOTE: H seira prepei na einai opws to enum iopcode
 //      sto utilities.h
 generator_func_t generators[] = {
@@ -11,7 +15,11 @@ generator_func_t generators[] = {
     generate_SUB,
     generate_MUL,
     generate_DIV,
-    generate_MOD
+    generate_MOD,
+    generate_ASSIGN,
+    generate_NEWTABLE,
+    generate_TABLEGETELEM,
+    generate_TABLESETELEM
 };
 
 void expandFinal(void) {
@@ -74,11 +82,17 @@ void generate(enum vmopcode op, quad* q) {
 }
 
 void make_operand(Expr* e, vmArg* arg) {
-    assert(e != NULL);
+    
+    if(e == NULL) {
+        arg -> type = nil_a;
+        return;
+    }
+
     switch(e -> exprType) {
         case var_e:
         case tableitem_e:
         case arithexpr_e:
+        case assignexpr_e:
         case boolexpr_e:
         case newtable_e: {
             assert(e -> symbol != NULL);
@@ -110,13 +124,13 @@ void make_operand(Expr* e, vmArg* arg) {
         }
 
         case conststring_e: {
-            //arg -> val = consts_newstring(e -> strConst);
+            arg -> val = consts_newstring(e -> strConst);
             arg -> type = string_a;
             break;
         }
 
         case constnum_e: {
-            //arg -> val = consts_newnumber(e -> numConst);
+            arg -> val = consts_newnumber(e -> numConst);
             arg -> type = number_a;
             break;
         }
@@ -134,7 +148,7 @@ void make_operand(Expr* e, vmArg* arg) {
 
         case libraryfunc_e: {
             arg -> type = libfunc_a;
-            //arg -> val = libfuncs_newused(getEntryName(e -> symbol));
+            arg -> val = libfuncs_newused(getEntryName(e -> symbol));
             break;
         }
 
@@ -143,7 +157,7 @@ void make_operand(Expr* e, vmArg* arg) {
 }
 
 void make_number_operand(vmArg* arg, double val) {
-    //arg -> val = consts_newnumber(val);
+    arg -> val = consts_newnumber(val);
     arg -> type = number_a;
 }
 
@@ -176,6 +190,22 @@ void generate_MOD(quad* q) {
     generate(mod_v, q);
 }
 
+void generate_NEWTABLE(quad* q) {
+    generate(newtable_v, q);
+}
+
+void generate_TABLEGETELEM(quad* q) {
+    generate(tablegetelem_v, q);
+}
+
+void generate_TABLESETELEM(quad* q) {
+    generate(tablesetelem_v, q);
+}
+
+void generate_ASSIGN(quad* q) {
+    generate(assign_v, q);
+}
+
 char* getVmOpcode(instruction* t) {
     assert(t != NULL);
 
@@ -197,9 +227,6 @@ char* getVmOpcode(instruction* t) {
         }
         case mod_v: {
             return "mod";
-        }
-        case uminus_v: {
-            return "uminus";
         }
         case and_v: {
             return "and";
@@ -271,4 +298,73 @@ void printFinalQuads(void) {
         i++;
     }
     printf("===============================================\n");
+}
+
+unsigned consts_newstring(char* s) {
+    constString* newNode;
+    constString* index;
+
+    newNode = (constString *)malloc(sizeof(constString));
+    newNode -> value = s;
+    newNode -> next = NULL;
+
+    if(constStringsArray == NULL) {
+        constStringsArray = newNode;
+        return 0;
+    }
+
+    index = constStringsArray;
+    while(index -> next != NULL) {
+        index = index -> next;
+    }
+
+    index -> next = newNode;
+    return 0;
+
+}
+
+unsigned consts_newnumber(double n) {
+    constNum* newNode;
+    constNum* index;
+
+    newNode = (constNum *)malloc(sizeof(constNum));
+    newNode -> value = n;
+    newNode -> next = NULL;
+
+    if(constNumsArray == NULL) {
+        constNumsArray = newNode;
+        return 0;
+    }
+
+    index = constNumsArray;
+    while(index -> next != NULL) {
+        index = index -> next;
+    }
+
+    index -> next = newNode;
+    return 0;
+
+}
+
+unsigned libfuncs_newused(char* s) {
+    libFunc* newNode;
+    libFunc* index;
+
+    newNode = (libFunc *)malloc(sizeof(libFunc));
+    newNode -> name = s;
+    newNode -> next = NULL;
+
+    if(libFuncs == NULL) {
+        libFuncs = newNode;
+        return 0;
+    }
+
+    index = libFuncs;
+    while(index -> next != NULL) {
+        index = index -> next;
+    }
+
+    index -> next = newNode;
+    return 0;
+
 }
