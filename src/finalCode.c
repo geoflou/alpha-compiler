@@ -17,9 +17,20 @@ generator_func_t generators[] = {
     generate_DIV,
     generate_MOD,
     generate_ASSIGN,
+    generate_NOP,
+    generate_IF_EQ,
+    generate_IF_NOTEQ,
+    generate_IF_LESSEQ,
+    generate_IF_GREATEREQ,
+    generate_IF_LESS,
+    generate_IF_GREATER,
     generate_NEWTABLE,
     generate_TABLEGETELEM,
-    generate_TABLESETELEM
+    generate_TABLESETELEM,
+    generate_PARAM,
+    generate_CALL,
+    generate_GETRETVAL,
+    generate_JUMP
 };
 
 void expandFinal(void) {
@@ -63,7 +74,7 @@ void generateFinalCode(void) {
 
 }
 
-//NOTE: Change t_address as lectures (Lecture 14, slide 17)
+//NOTE: Maybe change t_address as lectures (Lecture 14, slide 17)
 void generate(enum vmopcode op, quad* q) {
     instruction *t = (instruction *)malloc(sizeof(instruction));
 
@@ -77,6 +88,21 @@ void generate(enum vmopcode op, quad* q) {
     make_operand(q -> result, t -> result);
     t -> t_address = nextInstructionLabel() + 1;
     t -> srcLine = q -> line;
+
+    emitFinalQuad(t);
+}
+
+void generate_relational(enum vmopcode op, quad* q) {
+    instruction* t;
+    
+    t = (instruction*)malloc(sizeof(instruction));
+    t -> opcode = op;
+    make_operand(q -> arg1, t -> arg1);
+    make_operand(q -> arg2, t -> arg2);
+
+    t -> result = label_a;
+    t -> result -> val = q -> label;
+    t -> t_address = nextInstructionLabel() + 1;
 
     emitFinalQuad(t);
 }
@@ -206,6 +232,70 @@ void generate_ASSIGN(quad* q) {
     generate(assign_v, q);
 }
 
+void generate_NOP(void) {
+    instruction *t = (instruction*) malloc(sizeof(instruction));
+    t -> opcode = nop_v;
+    emitFinalQuad(t);
+}
+
+void generate_PARAM(quad* q) {
+    instruction* t;
+
+    t = (instruction *)malloc(sizeof(instruction));
+    t -> opcode = pusharg_v;
+    make_operand(q -> arg1, t -> arg1);
+    t -> t_address = nextInstructionLabel() + 1;
+    emitFinalQuad(t);
+}
+
+void generate_CALL(quad * q) {
+    instruction* t;
+
+    t = (instruction *)malloc(sizeof(instruction));
+    t -> opcode = callfunc_v;
+    make_operand(q -> arg1, t -> arg1);
+    t -> t_address = nextInstructionLabel() + 1;
+    emitFinalQuad(t);
+}
+
+void generate_GETRETVAL(quad * q) {
+    instruction *t;
+
+    t = (instruction *)malloc(sizeof(instruction));
+    t -> opcode = assign_v;
+    make_operand(q -> result, t -> result);
+    make_retval_operand(t -> arg1);
+    emitFinalQuad(t);
+}
+
+void generate_JUMP(quad* q) {
+    generate_relational(jump_v, q);
+}
+
+void generate_IF_EQ(quad* q) {
+    generate_relational(jeq_v, q);
+}
+
+void generate_IF_NOTEQ(quad* q) {
+    generate_relational(jne_v, q);
+}
+
+void generate_IF_GREATER(quad* q) {
+    generate_relational(jgt_v, q);
+}
+
+void generate_IF_GREATEREQ(quad* q) {
+    generate_relational(jge_v, q);
+}
+
+void generate_IF_LESS(quad* q) {
+    generate_relational(jlt_v, q);
+}
+
+void generate_IF_LESSEQ(quad* q) {
+    generate_relational(jle_v, q);
+}
+
 char* getVmOpcode(instruction* t) {
     assert(t != NULL);
 
@@ -298,6 +388,8 @@ void printFinalQuads(void) {
         i++;
     }
     printf("===============================================\n");
+
+    //printList();
 }
 
 unsigned consts_newstring(char* s) {
@@ -367,4 +459,18 @@ unsigned libfuncs_newused(char* s) {
     index -> next = newNode;
     return 0;
 
+}
+
+void printList(void) {
+    constString* index;
+    int i = 0;
+
+    index = constStringsArray;
+    while(index != NULL) {
+        printf("%d \t %s\n", i , index -> value);
+        i++;
+        index = index -> next;
+    }
+
+    return;
 }

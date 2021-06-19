@@ -7,7 +7,7 @@ enum iopcode{
     divide,
     mod,
     assign,
-    uminus,
+    nop,
     and,
     or,
     not,
