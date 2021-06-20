@@ -279,18 +279,6 @@ char *getOpCode(quad *q)
         case mod:
             return "mod";
 
-        case uminus:
-            return "uminus";
-
-        case and:
-            return "and";
-
-        case or:
-            return "or";
-
-        case not:
-            return "not";
-
         case if_eq:
             return "if_eq";
 
@@ -822,4 +810,8 @@ unsigned getTotal(void) {
 
 quad* getQuads(void) {
     return quads;
+}
+
+unsigned int getGlobalOffset(void) {
+    return programVarOffset;
 }

@@ -1089,6 +1089,7 @@ funcdef: FUNCTION ID {
                 new_func -> arguments[i] = strdup(temp_func -> arguments[i]);
                 insertFormal(new_func -> arguments[i], temp_func -> scope + 1, yylineno);
             }
+            new_func -> argsCount = i + 1;
             new_entry -> isActive = 1;
             new_entry -> varVal = NULL;
             new_entry -> funcVal = new_func;
@@ -1186,7 +1187,7 @@ funcdef: FUNCTION ID {
                 new_func -> arguments[i] = strdup(temp_func -> arguments[i]);
                 insertFormal(new_func -> arguments[i], temp_func -> scope + 1, yylineno);
             }
-
+            new_func -> argsCount = i + 1;
             new_entry -> isActive = 1;
             new_entry -> varVal = NULL;
             new_entry -> funcVal = new_func;
@@ -1507,6 +1508,7 @@ int main(int argc, char* argv[]){
         printQuads();
         generateFinalCode();
         printFinalQuads();
+        createBinaryFile();
     }
 
     fclose(in);

@@ -81,6 +81,14 @@ typedef struct constNum {
     struct constNum *next;
 } constNum;
 
+typedef struct userFunc {
+    char* name;
+    unsigned address;
+    unsigned int totalLocals;
+    unsigned int formalCount;
+    struct userFunc *next;
+} userFunc;
+
 #define FINAL_EXPAND_SIZE 1024
 #define FINAL_CURR_SIZE (totalFinal * sizeof(instruction))
 #define FINAL_NEW_SIZE (EXPAND_SIZE * sizeof(instruction) + FINAL_CURR_SIZE)
@@ -129,10 +137,13 @@ void generate_IF_GREATER(quad* q);
 void generate_IF_GREATEREQ(quad* q);
 void generate_IF_LESS(quad* q);
 void generate_IF_LESSEQ(quad* q);
+void generate_RETURN(quad *q);
+void generate_FUNCSTART(quad *q);
+void generate_FUNCEND(quad *q);
 
 void printFinalQuads(void);
 
 char* getVmOpcode(instruction* t);
 
-
 void printList(void);
+void createBinaryFile(void);

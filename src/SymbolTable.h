@@ -29,6 +29,7 @@ typedef struct Function{
     unsigned int line;
     unsigned int label;
     unsigned int totalLocalVars;
+    unsigned int argsCount;
 } Function;
 
 typedef enum scopespace_t {

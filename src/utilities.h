@@ -7,10 +7,6 @@ enum iopcode{
     divide,
     mod,
     assign,
-    nop,
-    and,
-    or,
-    not,
     if_eq,
     if_noteq,
     if_lesseq,
@@ -210,3 +206,5 @@ scopespace_t currScopeSpace(void);
 unsigned getTotal(void);
 
 quad* getQuads(void);
+
+unsigned int getGlobalOffset(void);

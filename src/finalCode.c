@@ -7,6 +7,7 @@ unsigned currFinalQuad = 0;
 constString *constStringsArray = (constString *) 0;
 constNum *constNumsArray = (constNum *) 0;
 libFunc* libFuncs = (libFunc *) 0;
+userFunc* userFuncs = (userFunc *) 0;
 
 //NOTE: H seira prepei na einai opws to enum iopcode
 //      sto utilities.h
@@ -17,19 +18,21 @@ generator_func_t generators[] = {
     generate_DIV,
     generate_MOD,
     generate_ASSIGN,
-    generate_NOP,
     generate_IF_EQ,
     generate_IF_NOTEQ,
     generate_IF_LESSEQ,
     generate_IF_GREATEREQ,
     generate_IF_LESS,
     generate_IF_GREATER,
+    generate_CALL,
+    generate_PARAM,
+    generate_RETURN,
+    generate_GETRETVAL,
+    generate_FUNCSTART,
+    generate_FUNCEND,
     generate_NEWTABLE,
     generate_TABLEGETELEM,
     generate_TABLESETELEM,
-    generate_PARAM,
-    generate_CALL,
-    generate_GETRETVAL,
     generate_JUMP
 };
 
@@ -94,15 +97,19 @@ void generate(enum vmopcode op, quad* q) {
 
 void generate_relational(enum vmopcode op, quad* q) {
     instruction* t;
-    
+
     t = (instruction*)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
     t -> opcode = op;
     make_operand(q -> arg1, t -> arg1);
     make_operand(q -> arg2, t -> arg2);
-
-    t -> result = label_a;
+    t -> result -> type = label_a;
     t -> result -> val = q -> label;
     t -> t_address = nextInstructionLabel() + 1;
+
 
     emitFinalQuad(t);
 }
@@ -168,7 +175,7 @@ void make_operand(Expr* e, vmArg* arg) {
 
         case programfunc_e: {
             arg -> type = userfunc_a;
-            //arg -> val = userfuncs_newfunc(e -> symbol);
+            arg -> val = userfuncs_newfunc(e -> symbol);
             break;
         }
 
@@ -242,6 +249,10 @@ void generate_PARAM(quad* q) {
     instruction* t;
 
     t = (instruction *)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
     t -> opcode = pusharg_v;
     make_operand(q -> arg1, t -> arg1);
     t -> t_address = nextInstructionLabel() + 1;
@@ -252,6 +263,10 @@ void generate_CALL(quad * q) {
     instruction* t;
 
     t = (instruction *)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+    
     t -> opcode = callfunc_v;
     make_operand(q -> arg1, t -> arg1);
     t -> t_address = nextInstructionLabel() + 1;
@@ -262,6 +277,10 @@ void generate_GETRETVAL(quad * q) {
     instruction *t;
 
     t = (instruction *)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
     t -> opcode = assign_v;
     make_operand(q -> result, t -> result);
     make_retval_operand(t -> arg1);
@@ -294,6 +313,50 @@ void generate_IF_LESS(quad* q) {
 
 void generate_IF_LESSEQ(quad* q) {
     generate_relational(jle_v, q);
+}
+
+void generate_RETURN(quad* q) {
+    instruction *t;
+
+    t = (instruction *)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
+    t -> opcode = assign_v;
+    t -> t_address = nextInstructionLabel() + 1;
+    make_retval_operand(t -> result);
+    make_operand(q -> arg1, t -> arg1);
+    emitFinalQuad(t);
+}
+
+void generate_FUNCSTART(quad *q) {
+    instruction *t;
+    userfuncs_newfunc(q -> result -> symbol);
+
+    t = (instruction*)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
+    t -> opcode = enterfunc_v;
+    t -> t_address = nextInstructionLabel() + 1;
+    make_operand(q -> result, t -> result);
+    emitFinalQuad(t);
+}
+
+void generate_FUNCEND(quad *q) {
+    instruction* t;
+    
+    t = (instruction*)malloc(sizeof(instruction));
+    t -> arg1 = (vmArg*)malloc(sizeof(vmArg));
+    t -> arg2 = (vmArg*)malloc(sizeof(vmArg));
+    t -> result = (vmArg*)malloc(sizeof(vmArg));
+
+    t -> opcode = exitfunc_v;
+    t -> t_address = nextInstructionLabel() + 1;
+    make_operand(q -> result, t -> result);
+    emitFinalQuad(t);
 }
 
 char* getVmOpcode(instruction* t) {
@@ -461,6 +524,33 @@ unsigned libfuncs_newused(char* s) {
 
 }
 
+unsigned userfuncs_newfunc(SymbolTableEntry* sym) {
+    assert(sym != NULL);
+    
+    userFunc* newNode;
+    userFunc* index;
+
+    newNode = (userFunc *)malloc(sizeof(userFunc));
+    newNode -> name = getEntryName(sym);
+    newNode -> totalLocals = sym -> funcVal -> totalLocalVars;
+    newNode -> formalCount = sym -> funcVal -> argsCount;
+    newNode -> address = nextInstructionLabel() + 1;
+    newNode -> next = NULL;
+
+    if(userFuncs == NULL) {
+        userFuncs = newNode;
+        return 0;
+    }
+
+    index = userFuncs;
+    while(index -> next != NULL) {
+        index = index -> next;
+    }
+
+    index -> next = newNode;
+    return 0;
+}
+
 void printList(void) {
     constString* index;
     int i = 0;
@@ -473,4 +563,90 @@ void printList(void) {
     }
 
     return;
+}
+
+void createBinaryFile(void) {
+    FILE* file;
+    unsigned int i = 0;
+    unsigned tempStrlen;
+    instruction *index;
+    constNum *numIndex;
+    constString *stringIndex;
+    userFunc* funcIndex;
+    unsigned offset;
+
+    file = fopen("./code.out", "wb");
+    if(!file) {
+        printf("ERROR: file creation error!\n");
+        return;
+    }
+
+    index = finalQuads;
+    while(i < currFinalQuad) {
+        fwrite(&i, sizeof(unsigned), 1, file);
+        fwrite(&index -> opcode, sizeof(index -> opcode), 1, file);
+
+        if(index -> result != NULL) {
+            fwrite(&index -> result -> type, sizeof(index -> result), 1, file);
+            if(index -> result -> type != retval_a) {
+                fwrite(&index -> result -> val, sizeof(index -> result), 1, file);
+            }
+        }
+
+        if(index -> arg1 != NULL) {
+            fwrite(&index -> arg1 -> type, sizeof(index -> arg1), 1, file);
+            if(index -> arg1 -> type != retval_a) {
+                fwrite(&index -> arg1 -> val, sizeof(index -> arg1), 1, file);
+            }
+        }
+
+        if(index -> arg2 != NULL) {
+            fwrite(&index -> arg2 -> type, sizeof(index -> arg2), 1, file);
+            if(index -> arg2 -> type != retval_a) {
+                fwrite(&index -> arg2 -> val, sizeof(index -> arg2), 1, file);
+            }
+        }
+
+        fwrite(&index -> srcLine, sizeof(unsigned), 1 , file);
+        i++;
+        index = finalQuads + i;
+    }
+
+    numIndex = constNumsArray;
+    i = 0;
+    while(numIndex != NULL) {
+        fwrite(&i, sizeof(unsigned), 1, file);
+        fwrite(&numIndex -> value, sizeof(double), 1, file);
+        numIndex = numIndex -> next;
+        i++;
+    }
+
+    stringIndex = constStringsArray;
+    i = 0;
+    while(stringIndex != NULL) {
+        fwrite(&i, sizeof(unsigned), 1, file);
+        tempStrlen = strlen(stringIndex -> value);
+        fwrite(&tempStrlen, sizeof(unsigned), 1 , file);
+        fwrite(&stringIndex -> value, sizeof(char)* tempStrlen, 1, file);
+        stringIndex = stringIndex -> next;
+        i++;
+    }
+
+    funcIndex = userFuncs;
+    i = 0;
+    while(funcIndex != NULL) {
+        fwrite(&i, sizeof(unsigned), 1, file);
+        fwrite(&funcIndex -> address, sizeof(unsigned), 1, file);
+        fwrite(&funcIndex -> totalLocals, sizeof(unsigned), 1, file);
+        fwrite(&funcIndex -> formalCount, sizeof(unsigned), 1, file);
+        tempStrlen = strlen(funcIndex -> name);
+        fwrite(&tempStrlen, sizeof(unsigned), 1 , file);
+        fwrite(&funcIndex -> name, sizeof(char)* tempStrlen, 1, file);
+        funcIndex = funcIndex -> next;
+        i++;
+    }
+
+    offset = getGlobalOffset();
+    fwrite(&offset, sizeof(unsigned), 1 , file);
+    fclose(file);
 }
